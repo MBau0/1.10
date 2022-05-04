@@ -9,6 +9,10 @@ public:
 
     __time64_t time();
 
+    void offset(__time64_t offset);
+
+    void test();
+
     bool alert();
 private:
     __time64_t _period_ms;

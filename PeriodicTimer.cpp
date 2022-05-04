@@ -31,6 +31,10 @@ __time64_t PeriodicTimer::time() {
     return _time_ms;
 }
 
+void PeriodicTimer::offset(__time64_t offset) {
+    _start_time_ms -= abs(offset);
+}
+
 bool PeriodicTimer::alert() {
     __time64_t current_time_ms = get_time_ms();
 

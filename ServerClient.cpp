@@ -6,11 +6,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
+#include <cassert>
 
 #include "Message.h"
 
+int create_unique_id() {
+    static int id = 0;
+    assert(id < 10000);
+    return id++;
+}
+
 ServerClient::ServerClient() :
-    _socket ( INVALID_SOCKET )
+    _socket ( INVALID_SOCKET ),
+    _id     ( create_unique_id() )
 {
 }  
 
@@ -39,7 +47,7 @@ bool ServerClient::associate(HANDLE iocp) {
     return true;
 }
 
-void ServerClient::send(Message* message) {
+void ServerClient::send(std::shared_ptr<Message> message) {
     ZeroMemory(&_send_context._overlapped, sizeof(WSAOVERLAPPED));
     memset(_send_context._buffer, 0, DATA_BUFFER_SIZE);
     _send_context._client = this;

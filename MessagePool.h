@@ -12,17 +12,17 @@ public:
 
     void swap(std::mutex& mutex);
 
-    std::vector<Message*>* get_previous() const;
-    std::vector<Message*>* get_current() const;
+    std::vector<std::shared_ptr<Message>>* get_previous() const;
+    std::vector<std::shared_ptr<Message>>* get_current() const;
 
     void clear_previous();
     void clear_current();
 private:
-    std::vector<Message*> _first_array;
-    std::vector<Message*> _second_array;
+    std::vector<std::shared_ptr<Message>> _first_array;
+    std::vector<std::shared_ptr<Message>> _second_array;
 
-    std::vector<Message*>* _previous;
-    std::vector<Message*>* _current;
+    std::vector<std::shared_ptr<Message>>* _previous;
+    std::vector<std::shared_ptr<Message>>* _current;
 };
 
 #endif

@@ -22,6 +22,7 @@ public:
     _Component* get() {
         return (_Component*) _components[_Component::_component_type];
     }
+
 private:
     std::array<Component*, TOTAL_COMPONENTS> _components { nullptr };
 };

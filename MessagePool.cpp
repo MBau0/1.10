@@ -12,11 +12,11 @@ void MessagePool::swap(std::mutex& mutex) {
     _current = tmp;
 }
 
-std::vector<Message*>* MessagePool::get_previous() const {
+std::vector<std::shared_ptr<Message>>* MessagePool::get_previous() const {
     return _previous;
 }
 
-std::vector<Message*>* MessagePool::get_current() const {
+std::vector<std::shared_ptr<Message>>* MessagePool::get_current() const {
     return _current;
 }
 

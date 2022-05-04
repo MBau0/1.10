@@ -11,9 +11,15 @@
 #include "Message.h"
 #include "MessagePool.h"
 
+#include "PeriodicTimer.h"
+
 #pragma comment(lib, "Ws2_32.lib")
 
-typedef void ( *message_func_server )( char* buffer, uint32_t size, std::vector<Message*>* messages );
+class Server;
+
+namespace server {
+    typedef void ( *message_receive_event )( char* buffer, uint32_t size, Server* server );
+};
 
 class Server {
     public:
@@ -31,7 +37,15 @@ class Server {
         void accept_clients();
         void worker_thread();
 
-        void parse_message(PER_IO_OPERATION* context, DWORD bytes_transferred);
+        void receive_message(PER_IO_OPERATION* context, DWORD bytes_transferred);
+
+        void send_to_client(int client_id, std::shared_ptr<Message> messaage);
+
+        void sync(ServerClient* client);
+
+        __time64_t get_tick_time();
+
+        std::vector<std::shared_ptr<Message>>* get_current_messages() const;
     private:
         SOCKET _listen_socket;
 
@@ -43,13 +57,12 @@ class Server {
 
         std::vector<std::thread> _threads;
 
-        std::unordered_map<uint32_t, message_func_server> _message_table;
+        std::unordered_map<uint32_t, server::message_receive_event> _message_receive_events;
 
         MessagePool _message_pool;
 
+        PeriodicTimer _tick_timer;
         std::thread _tick_updater;
 };
-
-void transform_message(char* buffer, uint32_t size, std::vector<Message*>* message);
 
 #endif

@@ -11,12 +11,34 @@
 
 #include "Message.h"
 #include "TransformMessage.h"
+#include "SyncMessage.h"
+
+#include "PeriodicTimer.h"
+
+#include <mutex>
 
 #define DEFAULT_HOSTNAME "192.168.1.4"
 #define DEFAULT_PORT "23001"
 
+namespace client 
+{
+
+    std::mutex message_pool_mutex;
+
+    void receive_transform_message(char* buffer, uint32_t size, Client* client);
+
+    void receive_sync_message(char* buffer, uint32_t size, Client* client);
+
+    void transform_message(std::shared_ptr<Message> message, Client* client);
+
+
+
+};
+
 constexpr uint32_t message_size(uint8_t id) {
     switch(id) {
+    case SYNC_MESSAGE:
+        return SyncMessage::_SIZE;
     case TRANSFORM_MESSAGE:
         return TransformMessage::_SIZE;
     }
@@ -26,7 +48,8 @@ constexpr uint32_t message_size(uint8_t id) {
 }
 
 Client::Client() :
-    _socket(INVALID_SOCKET)
+    _socket             ( INVALID_SOCKET ),
+    _tick_timer         ( 50 )
 {
     create_message_table();
 
@@ -40,7 +63,10 @@ Client::~Client() {
 }
 
 void Client::create_message_table() {
-    _message_table.emplace(TRANSFORM_MESSAGE, transform_message);
+    _message_receive_events.emplace(SYNC_MESSAGE, client::receive_sync_message);
+    _message_receive_events.emplace(TRANSFORM_MESSAGE, client::receive_transform_message);
+
+    _message_events.emplace(TRANSFORM_MESSAGE, client::transform_message);
 }
 
 void Client::n_connect() {
@@ -80,7 +106,7 @@ void Client::n_connect() {
     printf("done\n");
 }
 
-void Client::n_send(Message* message) {
+void Client::n_send(std::shared_ptr<Message> message) {
     char* data = message->data();
     size_t total_sent = 0;
     size_t bytes_left = message->_size;
@@ -119,7 +145,7 @@ void Client::n_receieve() {
 
             while(bytes_remaining >= size) {
 
-                parse_message(ptr, size);
+                receive_message(ptr, size);
 
                 bytes_handled += size;
                 bytes_remaining -= size;
@@ -142,7 +168,27 @@ void Client::n_receieve() {
     } while(r_recv > 0);
 }
 
-void Client::parse_message(char* data, uint32_t size) {
+void Client::tick_update() {
+    while(1) {
+        if(_tick_timer.alert()) {
+            _message_pool.swap(client::message_pool_mutex);
+
+            for(auto message : *_message_pool.get_previous()) {
+                 if(_message_events.count(message->type())) {
+                     _message_events.at(message->type()) ( message, this );
+                 }
+            }
+
+            _message_pool.clear_previous();
+        }
+    }
+}
+
+PeriodicTimer& Client::get_tick_timer() {
+    return _tick_timer;
+}
+
+void Client::receive_message(char* data, uint32_t size) {
     char* ptr = data;
     uint8_t message_id;
     memcpy(&message_id, ptr, sizeof(message_id));
@@ -150,11 +196,76 @@ void Client::parse_message(char* data, uint32_t size) {
     size -= sizeof(message_id);
     std::cout << "message_id: " << (int) message_id << "\n";
 
-    if(_message_table.count(message_id)) {
-        _message_table.at(message_id)( ptr, size );
+    if(_message_receive_events.count(message_id)) {
+        std::lock_guard<std::mutex> guard(client::message_pool_mutex);
+        _message_receive_events.at(message_id)( ptr, size, this );
     }
 }
 
-void transform_message(char* buffer, uint32_t size) {
+std::vector<std::shared_ptr<Message>>* Client::get_current_messages() const {
+    return _message_pool.get_current();
+}
+
+void Client::set_message_receiver(std::vector<std::shared_ptr<Message>>* message_receiver) {
+    _message_receiver = message_receiver;
+}
+
+std::vector<std::shared_ptr<Message>>* Client::get_message_receiver() {
+    return _message_receiver;
+}
+
+void client::receive_transform_message(char* buffer, uint32_t size, Client* client) {
     std::cout << "I AM READING A TRANSFORM MESSSAGE COMMING FROM TEH SERVER WTF\n";
+    std::shared_ptr<TransformMessage> message = std::make_shared<TransformMessage>();
+
+    memcpy(&message->_unit_id, buffer, sizeof(uint32_t));
+    memcpy(&message->_position[0], buffer + sizeof(uint32_t), sizeof(float) * 3);
+
+    std::cout << "Transform Message: unit_id: " << message->_unit_id << " position: " << message->_position.x << " " << message->_position.y << " " << message->_position.z << '\n';
+
+    auto messages = client->get_current_messages();
+    messages->push_back(std::static_pointer_cast<Message>( message ));
+}
+
+void client::transform_message(std::shared_ptr<Message> message, Client* client) {
+    std::cout << "SET THE UNIT DEST\n";
+
+    auto tm = std::dynamic_pointer_cast<TransformMessage>( message );
+    
+    std::cout << "x: " << tm->_position.x << " y: " << tm->_position.y << " z: " << tm->_position.z << "\n";
+
+    client->get_message_receiver()->push_back(message);
+}
+
+void client::receive_sync_message(char* buffer, uint32_t size, Client* client) {
+    std::cout << "Sync Message\n";
+
+    auto message = std::make_shared<SyncMessage>();
+    
+    char* ptr = buffer;
+    memcpy(&message->_client_id, ptr, sizeof(message->_client_id));
+    ptr += sizeof(message->_client_id);
+    memcpy(&message->_dom_time, ptr, sizeof(message->_dom_time));
+    ptr += sizeof(message->_dom_time);
+    memcpy(&message->_sub_time, ptr, sizeof(message->_sub_time));
+    ptr += sizeof(message->_sub_time);
+    memcpy(&message->_offset, ptr, sizeof(message->_offset));
+    ptr += sizeof(message->_offset);
+    memcpy(&message->_step, ptr, sizeof(message->_step));
+    ptr += sizeof(message->_step);
+
+    if(message->_step == 0) {
+
+
+        __time64_t time = client->get_tick_timer().time();
+        __time64_t delta = time - message->_dom_time;
+        message->_dom_time = delta;
+        message->_sub_time = time;
+        message->_step = 1;
+
+        client->n_send(std::static_pointer_cast<Message>( message ));
+    }
+    else if(message->_step == 2) {
+        client->get_tick_timer().offset(message->_offset);
+    }
 }

@@ -2,6 +2,10 @@
 
 #include "Debug.h"
 
+TransformMessage::TransformMessage() {
+    _size = _SIZE;
+}
+
 TransformMessage::TransformMessage(uint32_t unit_id, glm::vec3 position) :
     _unit_id        ( unit_id ),
     _position       ( position)

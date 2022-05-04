@@ -52,11 +52,16 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    std::vector<std::shared_ptr<Message>> messages;
+
     Client client;
     client.n_connect();
+    client.set_message_receiver(&messages);
 
     std::thread t = std::thread(&Client::n_receieve, &client);
     t.detach();
+    std::thread t2 = std::thread(&Client::tick_update, &client);
+    t2.detach();
 
     glfwInit();
 
@@ -87,7 +92,6 @@ int main(int argc, char* argv[]) {
     Entity akali_entity;
     auto akali_transform = component_manager.get_transform();
     akali_transform->_transform.set_scale(glm::vec3(.1, .1, .1));
-    akali.set_transform(akali_transform->_transform);
 
     akali_transform->move(glm::vec3(50, 1, -50));
 
@@ -101,16 +105,22 @@ int main(int argc, char* argv[]) {
     akali.attach_program(&texture_shader);
     camera.attach_program(&texture_shader);
 
-    camera.set_mode(CAMERA_LOCKED);
+    camera.set_mode(CAMERA_FREE);
 
     while(!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 
         camera.update();
 
         component_manager.update();
-        akali.set_transform(akali_transform->_transform);
-        TransformMessage transform_message(0, akali_transform->_transform.get_position());
 
+        if(messages.size() > 0) {
+           auto message = std::dynamic_pointer_cast<TransformMessage>(messages[0]);
+           akali_transform->move(message->_position);
+           messages.clear();
+        }
+
+        akali.set_transform(akali_transform->_transform);
+        
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearBufferfv(GL_COLOR, 0, CLEAR_COLOR);
 
@@ -133,7 +143,14 @@ int main(int argc, char* argv[]) {
         if(glfwGetWindowAttrib(window, GLFW_FOCUSED)) {
             double xpos, ypos;
             glfwGetCursorPos(window, &xpos, &ypos);
-            //camera.move_angle((float) xpos, (float) ypos);
+            camera.move_angle((float) xpos, (float) ypos);
+
+            if(glfwGetKey(window, GLFW_KEY_1)) {
+                camera.set_mode(CAMERA_FREE);
+            }
+            if(glfwGetKey(window, GLFW_KEY_2)) {
+                camera.set_mode(CAMERA_LOCKED);
+            }
 
             if(glfwGetKey(window, GLFW_KEY_W)) {
                 camera.move(CAMERA_FORWARD, frame_timer.get_frame_time_ms());
@@ -154,8 +171,12 @@ int main(int argc, char* argv[]) {
                 camera.move(CAMERA_UP, frame_timer.get_frame_time_ms());
             }
             if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT)) {
-                akali_transform->move(camera.mouse_position_world());
-                client.n_send(&transform_message);
+                //akali_transform->move(camera.mouse_position_world());
+                static PeriodicTimer timer(1000);
+                if(timer.alert()) {
+                    auto transform_message = std::make_shared<TransformMessage>(0, camera.mouse_position_world());
+                    client.n_send(transform_message);
+                }
             }
         }
 

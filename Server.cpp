@@ -16,18 +16,29 @@
 
 #include "Message.h"
 #include "TransformMessage.h"
+#include "SyncMessage.h"
+
 #include "Debug.h"
-#include "PeriodicTimer.h"
 
 #include <mutex>
 
 #define DEFAULT_PORT "23001"
 
-std::mutex message_pool_mutex;
+namespace server 
+{
+
+    std::mutex message_pool_mutex;
+
+    void receive_transform_message(char* buffer, uint32_t size, Server* server);
+
+    void receive_sync_message(char* buffer, uint32_t size, Server* server);
+
+};
 
 Server::Server() : 
     _listen_socket  ( INVALID_SOCKET ),
-    _started        ( false )
+    _started        ( false ),
+    _tick_timer     ( 50 )
 {
     WSAData wsaData;
     int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -63,7 +74,8 @@ Server::~Server() {
 }
 
 void Server::create_message_table() {
-    _message_table.emplace(TRANSFORM_MESSAGE, transform_message);
+    _message_receive_events.emplace(SYNC_MESSAGE, server::receive_sync_message);
+    _message_receive_events.emplace(TRANSFORM_MESSAGE, server::receive_transform_message);
 }
 
 bool Server::start() {
@@ -144,18 +156,15 @@ void Server::main() {
 }
 
 void Server::tick_update() {
-    PeriodicTimer tick(500);
     while(_started) {
-        if(tick.alert()) {
-            std::cout << "update\n";
-            _message_pool.swap(message_pool_mutex);
+        if(_tick_timer.alert()) {
+            _message_pool.swap(server::message_pool_mutex);
 
             for(auto message : *_message_pool.get_previous()) {
                 for(auto client : _clients) {
                     client->send(message);
                 }
 
-                delete message;
             }
 
             _message_pool.clear_previous();
@@ -173,6 +182,8 @@ void Server::accept_clients() {
             client->associate(_iocp);
             printf("Waiting Receive\n");
             client->receive();
+            std::cout << "WTFASJDKLAJSDKLJLAKSDJLKAJSDKLJALSDJAKLSDJ\n";
+            sync(client);
             _clients.push_back(client);
         }
     }
@@ -204,14 +215,38 @@ void Server::worker_thread() {
             std::cout << std::endl;
             std::cout << "Op: " << (int)context->_operation << std::endl;
             if((int) context->_operation == OP_READ) {
-                parse_message(context, bytes_transferred);
+                receive_message(context, bytes_transferred);
             }
             context->_client->receive();
         }
     }
 } 
 
-void Server::parse_message(PER_IO_OPERATION* context, DWORD bytes_transferred) {
+void Server::sync(ServerClient* client) {
+    std::cout << "SYNC THIS BITCH\n";
+    auto message = std::make_shared<SyncMessage>(client->_id, _tick_timer.time(), (uint8_t)0);
+
+    client->send(std::static_pointer_cast<Message>(message));
+}
+
+__time64_t Server::get_tick_time() {
+    return _tick_timer.time();
+}
+
+std::vector<std::shared_ptr<Message>>* Server::get_current_messages() const {
+    return _message_pool.get_current();
+}
+
+void Server::send_to_client(int client_id, std::shared_ptr<Message> message) {
+    for(auto client : _clients) {
+        if(client->_id == client_id) {
+            client->send(message);
+            return;
+        }
+    }
+}
+
+void Server::receive_message(PER_IO_OPERATION* context, DWORD bytes_transferred) {
     uint8_t message_id;
     char* ptr = context->_buffer;
     memcpy(&message_id, ptr, sizeof(message_id));
@@ -219,27 +254,48 @@ void Server::parse_message(PER_IO_OPERATION* context, DWORD bytes_transferred) {
     bytes_transferred -= sizeof(message_id);
     std::cout << "message_id: " << (int)message_id << "\n";
 
-    if(_message_table.count(message_id)) {
-        std::lock_guard<std::mutex> guard(message_pool_mutex);
-        _message_table.at(message_id)( ptr, bytes_transferred, _message_pool.get_current());
+    if(_message_receive_events.count(message_id)) {
+        std::lock_guard<std::mutex> guard(server::message_pool_mutex);
+        _message_receive_events.at(message_id)( ptr, bytes_transferred, this );
     }
 }
 
-void transform_message(char* buffer, uint32_t size, std::vector<Message*>* messages) {
-    uint32_t unitid;
-    float position[3];
+void server::receive_sync_message(char* buffer, uint32_t size, Server* server) {
+    std::cout << "Sync Message\n";
 
-    std::cout << "TRANSFORM MESSAGE\n";
-    //for(int i = 0; i < size; ++i) {
-    //    print_b(buffer[i]);
-    //}
+    auto message = std::make_shared<SyncMessage>();
 
-    memcpy(&unitid, buffer, sizeof(uint32_t));
-    memcpy(position, buffer + sizeof(uint32_t), sizeof(float) * 3);
+    char* ptr = buffer;
+    memcpy(&message->_client_id, ptr, sizeof(message->_client_id));
+    ptr += sizeof(message->_client_id);
+    memcpy(&message->_dom_time, ptr, sizeof(message->_dom_time));
+    ptr += sizeof(message->_dom_time);
+    memcpy(&message->_sub_time, ptr, sizeof(message->_sub_time));
+    ptr += sizeof(message->_sub_time);
+    memcpy(&message->_offset, ptr, sizeof(message->_offset));
+    ptr += sizeof(message->_offset);
+    memcpy(&message->_step, ptr, sizeof(message->_step));
+    ptr += sizeof(message->_step);
 
-    std::cout << "Transform Message: unit_id: " << unitid << " position: " << position[0] << " " << position[1] << " " << position[2] << '\n';
+    if(message->_step == 1) {
+        __time64_t delta = server->get_tick_time() - message->_sub_time;
+        __time64_t mean_path_delay = ( message->_dom_time + delta ) / 2;
+        message->_offset = message->_dom_time - mean_path_delay;
+        message->_step = 2;
 
-    TransformMessage* message = new TransformMessage(unitid, glm::vec3(position[0], position[1], position[2]));
+        server->send_to_client(message->_client_id, std::static_pointer_cast<Message>( message ));
+    }
 
-    messages->push_back(reinterpret_cast<Message*>(message));
+}
+
+void server::receive_transform_message(char* buffer, uint32_t size, Server* server) {
+    std::shared_ptr<TransformMessage> message = std::make_shared<TransformMessage>();
+
+    memcpy(&message->_unit_id, buffer, sizeof(uint32_t));
+    memcpy(&message->_position[0], buffer + sizeof(uint32_t), sizeof(float) * 3);
+
+    std::cout << "Transform Message: unit_id: " << message->_unit_id << " position: " << message->_position.x << " " << message->_position.y << " " << message->_position.z << '\n';
+
+    auto messages = server->get_current_messages();
+    messages->push_back(std::static_pointer_cast<Message>(message));
 }
