@@ -7,38 +7,40 @@
 
 #include <vector>
 
-#define CAMERA_FORWARD 1
-#define CAMERA_BACKWARD 2
-#define CAMERA_LEFT 3
-#define CAMERA_RIGHT 4
-#define CAMERA_UP 5
-#define CAMERA_DOWN 6
+class Program;
 
-#define CAMERA_FREE 0
-#define CAMERA_LOCKED 1
-#define CAMERA_TOGGLE 2
-
-struct Program;
+struct CameraSettings {
+	float _field_of_view = 90.0f;
+	float _aspect = 1.0f;
+	float _z_near = .1f;
+	float _z_far = 1000.0f;
+	float _h_angle = 3.14f;
+	float _v_angle = 0.0f;
+};
 
 class Camera {
 public:
-	struct Settings {
-		float _field_of_view = 90.0f;
-		float _aspect = 1.0f;
-		float _z_near = .1f;
-		float _z_far = 1000.0f;
-		float _h_angle = 3.14f;
-		float _v_angle = 0.0f;
+	enum Direction{
+		FORWARD,
+		BACKWARD,
+		LEFT,
+		RIGHT,
+		UP,
+		DOWN
 	};
 
-	Camera(GLFWwindow* window, Settings settings);
+	enum Mode {
+		FREE,
+		LOCKED,
+		TOGGLE
+	};
+public:
+	Camera(GLFWwindow* window, const CameraSettings& settings);
 
 	void update();
 
-	void move(int direction, float time, float speed = 0.0f);
-	inline void move_free(int direction, float time, float speed = 0.0f);
-	inline void move_locked(int direction, float time, float speed = 0.0f);
-	void move_angle(float xpos, float ypos);
+	void move(int direction, float time, float speed = DEFAULT_SPEED);
+	void rotate(float x, float y);
 
 	void set_mode(int mode);
 
@@ -46,14 +48,17 @@ public:
 
 	glm::mat4 get_view() const;
 	glm::mat4 get_projection() const;
-	glm::vec3* get_position();
+	glm::vec3 get_position() const;
 
-	glm::vec3 mouse_position_world();
+	glm::vec3 mouse_position_world() const;
 
 	int get_mode() const;
 private:
-	int		 _mode;
-	Settings _settings;
+	void move_free(int direction, float time, float speed = DEFAULT_SPEED);
+	void move_locked(int direction, float time, float speed = DEFAULT_SPEED);
+private:
+	int			   _mode;
+	CameraSettings _settings;
 
 	glm::vec3 _position;
 	glm::vec3 _direction;
@@ -66,6 +71,9 @@ private:
 	GLFWwindow* _window;
 
 	std::vector<Program*> _programs;
+
+	static constexpr float DEFAULT_SPEED = .11f;
+	static constexpr float LOCKED_VERTICAL_ANGLE = -1.2f;
 };
 
 #endif

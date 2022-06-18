@@ -20,7 +20,8 @@ struct TransformComponent : public Component {
     glm::vec3 _direction;
     glm::vec3 _destination;
     glm::vec3 _start;
-    glm::vec3 _total;
+    glm::vec3 _total_counter;
+    glm::vec3 _total_dist;
     bool _moving;
 };
 

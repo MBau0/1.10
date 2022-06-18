@@ -2,13 +2,13 @@
 
 #include "Program.h"
 
-#define M_PI_2			1.57079632679489661923
-#define BASE_SPEED		0.11f
-#define LOCKED_V_ANGLE -1.0f
+#include <math.h>
 
-Camera::Camera(GLFWwindow* window, Settings settings) :
+const float M_PI_2 = float(acos(-1)) / 2.0f;
+
+Camera::Camera(GLFWwindow* window, const CameraSettings& settings) :
 	_window					( window ),
-	_mode					( CAMERA_FREE ),
+	_mode					( FREE ),
 	_settings				( settings ),
 	_projection				( glm::perspective(settings._field_of_view, settings._aspect, settings._z_near, settings._z_far) ),
 	_view					( glm::mat4(0) ),
@@ -40,28 +40,28 @@ void Camera::update() {
 	);
 
 	for(const auto& program : _programs) {
-		glUseProgram(program->_id);
-		glUniformMatrix4fv(glGetUniformLocation(program->_id, "view"), 1, GL_FALSE, &_view[0][0]);
+		program->use();
+		glUniformMatrix4fv(program->location("view"), 1, GL_FALSE, &_view[0][0]);
 	}
 }
 
 void Camera::set_mode(int mode) {
 	switch(mode) {
-	case CAMERA_FREE:
+	case FREE:
 		_mode = mode;
 		break;
-	case CAMERA_LOCKED:
-		_settings._v_angle = LOCKED_V_ANGLE;
+	case LOCKED:
+		_settings._v_angle = LOCKED_VERTICAL_ANGLE;
 		_settings._h_angle = 3.14f;
 		_mode = mode;
 		break;
-	case CAMERA_TOGGLE:
+	case TOGGLE:
 		switch(_mode) {
-		case CAMERA_FREE:
-			set_mode(CAMERA_LOCKED);
+		case FREE:
+			set_mode(LOCKED);
 			break;
-		case CAMERA_LOCKED:
-			set_mode(CAMERA_FREE);
+		case LOCKED:
+			set_mode(FREE);
 			break;
 		default:
 			break;
@@ -71,12 +71,12 @@ void Camera::set_mode(int mode) {
 	}
 }
 
-void Camera::move(const int direction, float time, float speed) {
+void Camera::move(int direction, float time, float speed) {
 	switch(_mode) {
-	case CAMERA_FREE:
+	case FREE:
 		move_free(direction, time, speed);
 		break;
-	case CAMERA_LOCKED:
+	case LOCKED:
 		move_locked(direction, time, speed);
 		break;
 	default:
@@ -86,27 +86,27 @@ void Camera::move(const int direction, float time, float speed) {
 
 void Camera::move_free(int direction, float time, float speed) {
 	switch(direction) {
-	case CAMERA_FORWARD:
-		_position.x += _direction.x * ( BASE_SPEED + speed ) * time;
-		_position.z += _direction.z * ( BASE_SPEED + speed ) * time;
+	case FORWARD:
+		_position.x += _direction.x * ( DEFAULT_SPEED + speed ) * time;
+		_position.z += _direction.z * ( DEFAULT_SPEED + speed ) * time;
 		break;
-	case CAMERA_BACKWARD:
-		_position.x -= _direction.x * ( BASE_SPEED + speed ) * time;
-		_position.z -= _direction.z * ( BASE_SPEED + speed ) * time;
+	case BACKWARD:
+		_position.x -= _direction.x * ( DEFAULT_SPEED + speed ) * time;
+		_position.z -= _direction.z * ( DEFAULT_SPEED + speed ) * time;
 		break;
-	case CAMERA_LEFT:
-		_position.x -= _right.x * ( BASE_SPEED + speed ) * time;
-		_position.z -= _right.z * ( BASE_SPEED + speed ) * time;
+	case LEFT:
+		_position.x -= _right.x * ( DEFAULT_SPEED + speed ) * time;
+		_position.z -= _right.z * ( DEFAULT_SPEED + speed ) * time;
 		break;
-	case CAMERA_RIGHT:
-		_position.x += _right.x * ( BASE_SPEED + speed ) * time;
-		_position.z += _right.z * ( BASE_SPEED + speed ) * time;
+	case RIGHT:
+		_position.x += _right.x * ( DEFAULT_SPEED + speed ) * time;
+		_position.z += _right.z * ( DEFAULT_SPEED + speed ) * time;
 		break;
-	case CAMERA_UP:
-		_position.y += ( BASE_SPEED + speed ) * time;
+	case UP:
+		_position.y += ( DEFAULT_SPEED + speed ) * time;
 		break;
-	case CAMERA_DOWN:
-		_position.y -= ( BASE_SPEED + speed ) * time;
+	case DOWN:
+		_position.y -= ( DEFAULT_SPEED + speed ) * time;
 		break;
 	default:
 		break;
@@ -115,41 +115,44 @@ void Camera::move_free(int direction, float time, float speed) {
 
 void Camera::move_locked(int direction, float time, float speed) {
 	switch(direction) {
-	case CAMERA_FORWARD:
-		_position.z -= ( BASE_SPEED + speed ) * time;
+	case FORWARD:
+		_position.z -= ( DEFAULT_SPEED + speed ) * time;
 		break;
-	case CAMERA_BACKWARD:
-		_position.z += ( BASE_SPEED + speed ) * time;
+	case BACKWARD:
+		_position.z += ( DEFAULT_SPEED + speed ) * time;
 		break;
-	case CAMERA_LEFT:
-		_position.x -= ( BASE_SPEED + speed ) * time;
+	case LEFT:
+		_position.x -= ( DEFAULT_SPEED + speed ) * time;
 		break;
-	case CAMERA_RIGHT:
-		_position.x += ( BASE_SPEED + speed ) * time;
+	case RIGHT:
+		_position.x += ( DEFAULT_SPEED + speed ) * time;
 		break;
-	case CAMERA_UP:
-		_position.y += ( BASE_SPEED + speed ) * time;
+	case UP:
+		_position.y += ( DEFAULT_SPEED + speed ) * time;
 		break;
-	case CAMERA_DOWN:
-		_position.y -= ( BASE_SPEED + speed ) * time;
+	case DOWN:
+		_position.y -= ( DEFAULT_SPEED + speed ) * time;
 		break;
 	default:
 		break;
 	}
 }
 
-void Camera::move_angle(float xpos, float ypos) {
+void Camera::rotate(float x, float y) {
+	if (_mode == LOCKED) {
+		return;
+	}
 	int width, height;
 	glfwGetWindowSize(_window, &width, &height);
-	_settings._h_angle += 0.001f * ( ( (float) width / 2.0f ) - xpos );
-	_settings._v_angle += 0.001f * ( ( (float) height / 2.0f ) - ypos );
+	_settings._h_angle += 0.001f * ( ( (float) width / 2.0f ) - x );
+	_settings._v_angle += 0.001f * ( ( (float) height / 2.0f ) - y );
 	glfwSetCursorPos(_window, (double) width / 2.0, (double) height / 2.0);
 }
 
 void Camera::attach_program(Program* program) {
-	glUseProgram(program->_id);
-	glUniformMatrix4fv(glGetUniformLocation(program->_id, "view"), 1, GL_FALSE, &_view[0][0]);
-	glUniformMatrix4fv(glGetUniformLocation(program->_id, "projection"), 1, GL_FALSE, &_projection[0][0]);
+	program->use();
+	glUniformMatrix4fv(program->location("view"), 1, GL_FALSE, &_view[0][0]);
+	glUniformMatrix4fv(program->location("projection"), 1, GL_FALSE, &_projection[0][0]);
 
 	_programs.push_back(program);
 }
@@ -162,15 +165,15 @@ glm::mat4 Camera::get_projection() const {
 	return _projection;
 }
 
-glm::vec3* Camera::get_position() {
-	return &_position;
+glm::vec3 Camera::get_position() const {
+	return _position;
 }
 
 int Camera::get_mode() const {
 	return _mode;
 }
 
-glm::vec3 Camera::mouse_position_world() {
+glm::vec3 Camera::mouse_position_world() const {
 	double x, y;
 	int width, height;
 	glfwGetCursorPos(_window, &x, &y);

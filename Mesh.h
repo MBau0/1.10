@@ -8,6 +8,7 @@
 #include <vector>
 
 class Transform;
+class Program;
 
 class Mesh {
 public:
@@ -25,7 +26,7 @@ public:
 
 	void create_buffers();
 
-	void draw(GLuint program, glm::mat4x4 model, int mode);
+	void draw(Program* program, glm::mat4x4 model, int mode);
 
 	std::vector<Texture>				_textures;
 	std::vector<glm::vec3>				_vertices;

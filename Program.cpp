@@ -9,7 +9,7 @@
 
 /********************************************************************************************************************************************************/
 
-#define END_KEYWORD "#End"
+const char END_KEYWORD[] = "#End";
 
 Program::Program() :
 	_key			( -1 ),
@@ -129,4 +129,12 @@ bool Program::load_shader(int type, const char* shader) {
 	glDeleteShader(id);
 
 	return true;
+}
+
+void Program::use() const {
+	glUseProgram(_id);
+}
+
+GLint Program::location(std::string_view location) const {
+	return glGetUniformLocation(_id, location.data());
 }

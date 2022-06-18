@@ -20,6 +20,8 @@
 
 #include "TransformMessage.h"
 
+#include "Grid.h"
+
 constexpr GLfloat CLEAR_COLOR[4] = { 0, 0, 0, 0 };
 
 void check_for_gl_error() {
@@ -78,7 +80,7 @@ int main(int argc, char* argv[]) {
     PeriodicTimer periodic_timer(200);
     FrameTimer frame_timer;
 
-    Camera::Settings camera_settings;
+    CameraSettings camera_settings;
     Camera camera(window, camera_settings);
 
     ComponentManager component_manager;
@@ -105,7 +107,15 @@ int main(int argc, char* argv[]) {
     akali.attach_program(&texture_shader);
     camera.attach_program(&texture_shader);
 
-    camera.set_mode(CAMERA_FREE);
+    Program grid_shader;
+    grid_shader.load("Data/Shaders/grid shader.glsl");
+    camera.attach_program(&grid_shader);
+
+    camera.set_mode(Camera::LOCKED);
+
+    Grid grid(128, 128);
+
+    bool edit_mode = false;
 
     while(!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 
@@ -116,6 +126,7 @@ int main(int argc, char* argv[]) {
         if(messages.size() > 0) {
            auto message = std::dynamic_pointer_cast<TransformMessage>(messages[0]);
            akali_transform->move(message->_position);
+           std::cout << message->_position.x << " " << message->_position.z << "\n";
            messages.clear();
         }
 
@@ -125,7 +136,12 @@ int main(int argc, char* argv[]) {
         glClearBufferfv(GL_COLOR, 0, CLEAR_COLOR);
 
         //draw stuff
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
         map.draw();
+        glDisable(GL_CULL_FACE);
+
+        if(edit_mode) grid.draw(glm::vec2(128, 128), &grid_shader);
         akali.draw();
         
         glfwSwapBuffers(window);
@@ -139,48 +155,94 @@ int main(int argc, char* argv[]) {
         check_for_gl_error();
         
         glfwPollEvents();
-
         if(glfwGetWindowAttrib(window, GLFW_FOCUSED)) {
             double xpos, ypos;
             glfwGetCursorPos(window, &xpos, &ypos);
-            camera.move_angle((float) xpos, (float) ypos);
+            camera.rotate((float) xpos, (float) ypos);
 
             if(glfwGetKey(window, GLFW_KEY_1)) {
-                camera.set_mode(CAMERA_FREE);
+                camera.set_mode(Camera::FREE);
             }
             if(glfwGetKey(window, GLFW_KEY_2)) {
-                camera.set_mode(CAMERA_LOCKED);
+                camera.set_mode(Camera::LOCKED);
             }
 
             if(glfwGetKey(window, GLFW_KEY_W)) {
-                camera.move(CAMERA_FORWARD, frame_timer.get_frame_time_ms());
+                camera.move(Camera::FORWARD, frame_timer.get_frame_time_ms());
             }
             if(glfwGetKey(window, GLFW_KEY_S)) {
-                camera.move(CAMERA_BACKWARD, frame_timer.get_frame_time_ms());
+                camera.move(Camera::BACKWARD, frame_timer.get_frame_time_ms());
             }
             if(glfwGetKey(window, GLFW_KEY_A)) {
-                camera.move(CAMERA_LEFT, frame_timer.get_frame_time_ms());
+                camera.move(Camera::LEFT, frame_timer.get_frame_time_ms());
             }
             if(glfwGetKey(window, GLFW_KEY_D)) {
-                camera.move(CAMERA_RIGHT, frame_timer.get_frame_time_ms());
+                camera.move(Camera::RIGHT, frame_timer.get_frame_time_ms());
             }
             if(glfwGetKey(window, GLFW_KEY_Q)) {
-                camera.move(CAMERA_DOWN, frame_timer.get_frame_time_ms());
+                camera.move(Camera::DOWN, frame_timer.get_frame_time_ms());
             }
             if(glfwGetKey(window, GLFW_KEY_E)) {
-                camera.move(CAMERA_UP, frame_timer.get_frame_time_ms());
+                camera.move(Camera::UP, frame_timer.get_frame_time_ms());
             }
-            if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT)) {
-                //akali_transform->move(camera.mouse_position_world());
-                static PeriodicTimer timer(1000);
-                if(timer.alert()) {
-                    auto transform_message = std::make_shared<TransformMessage>(0, camera.mouse_position_world());
-                    client.n_send(transform_message);
+            
+            if (glfwGetKey(window, GLFW_KEY_SPACE)) {
+                edit_mode = !edit_mode;
+            }
+
+            if (!edit_mode) {
+                if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT)) {
+                    //akali_transform->move(camera.mouse_position_world());
+                    static PeriodicTimer timer(1000);
+                    if (timer.alert()) {
+                        auto transform_message = std::make_shared<TransformMessage>(0, camera.mouse_position_world());
+                        client.n_send(transform_message);
+                    }
+                }
+            }
+            else {
+                if (glfwGetKey(window, GLFW_KEY_0)) {
+                    grid.load_height_map();
+                }
+                if (glfwGetKey(window, GLFW_KEY_P)) {
+                    grid.save_height_map();
+                }
+                static Tile tile;
+                static bool selected = false;
+                if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)) {
+                    static PeriodicTimer timer(100);
+                    if (timer.alert()) {
+                        auto pos = camera.mouse_position_world();
+                        grid.highlight_tile(pos);
+                        tile = grid.get_tile(pos.x, pos.z);
+                        std::cout << tile.x << " " << tile.z << "\n";
+                        selected = true;
+                    }
+                }
+                if (selected && glfwGetKey(window, GLFW_KEY_UP)) {
+                    static PeriodicTimer timer(250);
+                    if (timer.alert()) {
+                        tile.y += 7.8125f / 2.0f;
+                        grid.set_tile(tile);
+                    }
+                }
+                else if (selected && glfwGetKey(window, GLFW_KEY_DOWN)) {
+                    static PeriodicTimer timer(250);
+                    if (timer.alert()) {
+                        tile.y -= 7.8125f / 2.0f;
+                        grid.set_tile(tile);
+                    }
+                }
+                if (glfwGetKey(window, GLFW_KEY_B)) {
+                    // build something
                 }
             }
         }
 
     }
+
+    t.~thread();
+    t2.~thread();
 
     return 0;
 }

@@ -76,7 +76,7 @@ void Scene::draw(int mode, glm::mat4 transform) {
 
 	for(auto& mesh : _meshes) {
 		if(_program) {
-			mesh.draw(_program->_id, model, mode);
+			mesh.draw(_program, model, mode);
 		}
 	}
 
@@ -164,4 +164,9 @@ void Scene::construct_scene_from_assimp(const aiScene* ai_scene, aiNode* node, S
 		const auto child = scene->new_child();
 		construct_scene_from_assimp(ai_scene, node->mChildren[i], child, directory, depth);
 	}
+}
+
+const Mesh* Scene::get_mesh() const {
+	assert(_children.size() == 1);
+	return &_children[0]->_meshes[0];
 }

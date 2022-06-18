@@ -1,6 +1,7 @@
 #include "Mesh.h"
 
 #include "Transform.h"
+#include "Program.h"
 
 #include <GL/gl3w.h>
 
@@ -84,11 +85,11 @@ void Mesh::create_buffers() {
 	}
 }
 
-void Mesh::draw(GLuint program, glm::mat4x4 model, int mode) {
+void Mesh::draw(Program* program, glm::mat4x4 model, int mode) {
 	glBindVertexArray(_vao);
-	glUseProgram(program);
+	program->use();
 
-	glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, &model[0][0]);
+	glUniformMatrix4fv(program->location("model"), 1, GL_FALSE, &model[0][0]);
 
 	for(unsigned int i = 0; i < _textures.size(); ++i) {
 		glActiveTexture(GL_TEXTURE0 + i);
