@@ -12,6 +12,9 @@
 #include "Entity.h"
 
 #include "ComponentManager.h"
+#include "TransformComponent.h"
+#include "BuildingComponent.h"
+#include "UnitComponent.h"
 
 #include <string>
 
@@ -21,6 +24,9 @@
 #include "TransformMessage.h"
 
 #include "Grid.h"
+
+#include "ImageManager.h"
+#include "UI.h"
 
 constexpr GLfloat CLEAR_COLOR[4] = { 0, 0, 0, 0 };
 
@@ -77,6 +83,9 @@ int main(int argc, char* argv[]) {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
+    ImageManager imageManager;
+    UI ui(window, imageManager.get_abilities());
+
     PeriodicTimer periodic_timer(200);
     FrameTimer frame_timer;
 
@@ -93,9 +102,14 @@ int main(int argc, char* argv[]) {
     akali.load_assimp("Data/Models/Akali/", "akali.dae");
     Entity akali_entity;
     auto akali_transform = component_manager.get_transform();
-    akali_transform->_transform.set_scale(glm::vec3(.1, .1, .1));
+    akali_transform->_transform.set_scale(glm::vec3(.05, .05, .05));
 
-    akali_transform->move(glm::vec3(50, 1, -50));
+    Scene building;
+    building.load_assimp("Data/Models/Box/", "box.obj");
+    Entity building_entity;
+    building_entity.attach(component_manager.get_building());
+    auto building_transform = component_manager.get_transform();
+    building_transform->move(glm::vec3(1, 1, 1));
 
     Program basic_shader;
     basic_shader.load("Data/Shaders/basic shader.glsl");
@@ -106,6 +120,7 @@ int main(int argc, char* argv[]) {
     texture_shader.load("Data/Shaders/texture shader.glsl");
     akali.attach_program(&texture_shader);
     camera.attach_program(&texture_shader);
+    building.attach_program(&texture_shader);
 
     Program grid_shader;
     grid_shader.load("Data/Shaders/grid shader.glsl");
@@ -119,6 +134,8 @@ int main(int argc, char* argv[]) {
 
     while(!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 
+        ui.new_frame();
+
         camera.update();
 
         component_manager.update();
@@ -131,7 +148,17 @@ int main(int argc, char* argv[]) {
         }
 
         akali.set_transform(akali_transform->_transform);
+        building.set_transform(building_transform->_transform);
+
+        static bool build_mode = false;
+        if (build_mode) {
+            auto pos = camera.mouse_position_world();
+            building_transform->_transform.set_position(pos);
+            building.set_transform(building_transform->_transform);
+        }
         
+        ui.update();
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearBufferfv(GL_COLOR, 0, CLEAR_COLOR);
 
@@ -142,7 +169,12 @@ int main(int argc, char* argv[]) {
         glDisable(GL_CULL_FACE);
 
         if(edit_mode) grid.draw(glm::vec2(128, 128), &grid_shader);
+
         akali.draw();
+
+        building.draw();
+
+        ui.draw();
         
         glfwSwapBuffers(window);
 
@@ -187,7 +219,10 @@ int main(int argc, char* argv[]) {
             }
             
             if (glfwGetKey(window, GLFW_KEY_SPACE)) {
-                edit_mode = !edit_mode;
+                static PeriodicTimer t(100);
+                if (t.alert()) {
+                    edit_mode = !edit_mode;
+                }
             }
 
             if (!edit_mode) {
@@ -233,8 +268,9 @@ int main(int argc, char* argv[]) {
                         grid.set_tile(tile);
                     }
                 }
+              
                 if (glfwGetKey(window, GLFW_KEY_B)) {
-                    // build something
+                    build_mode = true;
                 }
             }
         }

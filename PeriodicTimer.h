@@ -1,23 +1,21 @@
 #ifndef PERIODICTIMER_H
 #define PERIODICTIMER_H
 
-#include <time.h>
+#include <Windows.h>
 
 class PeriodicTimer {
 public:
-    PeriodicTimer(__time64_t period_ms);
+    PeriodicTimer(DWORD period_ms);
 
-    __time64_t time();
+    DWORD time();
 
-    void offset(__time64_t offset);
-
-    void test();
+    void offset(DWORD offset);
 
     bool alert();
 private:
-    __time64_t _period_ms;
-    __time64_t _time_ms;
-    __time64_t _start_time_ms;
+    DWORD _period_ms;
+    DWORD _time_ms;
+    DWORD _start_time_ms;
 };
 
 #endif

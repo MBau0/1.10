@@ -155,6 +155,6 @@ void Grid::update_height_buffer() {
 	glBufferSubData(GL_ARRAY_BUFFER, NULL, sizeof(GLfloat) * _height_map.size(), &_height_map[0]);
 }
 
-void Grid::place_building(std::shared_ptr<Entity> building) {
-
-}
+//void Grid::place_building(std::shared_ptr<Entity> building) {
+//
+//}

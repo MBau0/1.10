@@ -11,7 +11,7 @@ enum {
 struct Message {
     virtual char* data() = 0;
 
-    constexpr virtual uint8_t type() const = 0;
+    virtual const uint8_t type() const = 0;
 
     uint32_t _size = 0;
 };

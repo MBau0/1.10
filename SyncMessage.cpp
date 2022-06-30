@@ -29,9 +29,9 @@ char* SyncMessage::data() {
     ptr += sizeof(_ID);
     memcpy(ptr, &_client_id, sizeof(_client_id));
     ptr += sizeof(_client_id);
-    memcpy(ptr, &_dom_time, sizeof(_sub_time));
+    memcpy(ptr, &_dom_time, sizeof(_dom_time));
     ptr += sizeof(_dom_time);
-    memcpy(ptr, &_sub_time, sizeof(_dom_time));
+    memcpy(ptr, &_sub_time, sizeof(_sub_time));
     ptr += sizeof(_sub_time);
     memcpy(ptr, &_offset, sizeof(_offset));
     ptr += sizeof(_offset);

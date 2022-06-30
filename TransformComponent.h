@@ -8,6 +8,8 @@
 struct TransformComponent : public Component {
     TransformComponent(Entity* entity = nullptr);
 
+    void copy(Entity* const entity, const TransformComponent& rhs);
+
     void update();
 
     void move(glm::vec3 dest);

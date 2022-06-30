@@ -13,6 +13,8 @@ public:
 
 	Transform(const Transform& rhs);
 
+	Transform& operator=(const Transform& rhs);
+
 	void create_matrices();
 
 	void set_position(glm::vec3 position);

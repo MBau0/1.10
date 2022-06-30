@@ -21,6 +21,21 @@ Transform::Transform(const Transform& rhs) :
 	_rotation			( rhs._rotation				)
 {}
 
+Transform& Transform::operator=(const Transform& rhs) {
+	_model = rhs._model;
+	_position_matrix = rhs._position_matrix;
+	_scale_matrix = rhs._scale_matrix;
+	_rotation_matrix = rhs._rotation_matrix;
+	_rotation_matrix_x = rhs._rotation_matrix_x;
+	_rotation_matrix_y = rhs._rotation_matrix_y;
+	_rotation_matrix_z = rhs._rotation_matrix_z;
+	_position = rhs._position;
+	_scale = rhs._scale;
+	_rotation = rhs._rotation;
+
+	return *this;
+}
+
 void Transform::create_matrices() {
 	_position_matrix = glm::translate(glm::mat4(1), _position);
 	_scale_matrix = glm::scale(glm::mat4(1), _scale);

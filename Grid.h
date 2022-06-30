@@ -38,7 +38,7 @@ public:
 
 	void save_height_map();
 
-	void place_building(std::shared_ptr<Entity> building);
+	//void place_building(std::shared_ptr<Entity> building);
 private:
 	// init vertex buffer when constructed
 	void create_buffers();

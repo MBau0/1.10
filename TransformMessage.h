@@ -16,7 +16,7 @@ struct TransformMessage : public Message {
 
     char* data();
 
-    constexpr uint8_t type() const { return TRANSFORM_MESSAGE; }
+    const uint8_t type() const { return TRANSFORM_MESSAGE; }
 
     static constexpr uint8_t _ID = TRANSFORM_MESSAGE;
     static constexpr uint32_t _SIZE = sizeof(_ID) + sizeof(_unit_id) + sizeof(_position);

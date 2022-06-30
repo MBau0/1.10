@@ -6,7 +6,19 @@ TransformComponent::TransformComponent(Entity* entity) :
     _moving   ( false )
 {}
 
-#include <iostream>
+void TransformComponent::copy(Entity* const entity, const TransformComponent& rhs) {
+    _entity = entity;
+
+    _transform = rhs._transform;
+    _speed = rhs._speed;
+    _direction = rhs._direction;
+    _destination = rhs._destination;
+    _start = rhs._start;
+    _total_counter = rhs._total_counter;
+    _total_dist = rhs._total_dist;
+    _moving = rhs._moving;
+}
+
 void TransformComponent::update() {
     if(_moving) {
         auto position = _transform.get_position();
