@@ -2,5 +2,7 @@
 name "Akali"
 
 # Transform
+speed.f 0.01
+scale.f 0.05
 
 # Unit

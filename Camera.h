@@ -66,6 +66,7 @@ private:
 	glm::vec3 _up;
 
 	glm::mat4 _projection;
+	glm::mat4 _ortho;
 	glm::mat4 _view;
 
 	GLFWwindow* _window;

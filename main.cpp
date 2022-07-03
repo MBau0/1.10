@@ -28,6 +28,10 @@
 #include "ImageManager.h"
 #include "UI.h"
 
+#include "EntityManager.h"
+
+#include "UnitSelection.h"
+
 constexpr GLfloat CLEAR_COLOR[4] = { 0, 0, 0, 0 };
 
 void check_for_gl_error() {
@@ -92,23 +96,21 @@ int main(int argc, char* argv[]) {
     CameraSettings camera_settings;
     Camera camera(window, camera_settings);
 
-    ComponentManager component_manager;
-
     Scene map;
     map.load_assimp("Data/Models/Map/", "map.obj");
     map.set_transform(Transform(glm::vec3(0, 0, 0)));
 
+    EntityManager entity_manager;
+
     Scene akali;
     akali.load_assimp("Data/Models/Akali/", "akali.dae");
-    Entity akali_entity;
-    auto akali_transform = component_manager.get_transform();
-    akali_transform->_transform.set_scale(glm::vec3(.05, .05, .05));
+    Entity* akali_entity = entity_manager.create(0, 1);
+    auto akali_transform = akali_entity->get<TransformComponent>();
 
     Scene building;
     building.load_assimp("Data/Models/Box/", "box.obj");
-    Entity building_entity;
-    building_entity.attach(component_manager.get_building());
-    auto building_transform = component_manager.get_transform();
+    Entity* building_entity = entity_manager.create(1, 0);
+    auto building_transform = building_entity->get<TransformComponent>();
     building_transform->move(glm::vec3(1, 1, 1));
 
     Program basic_shader;
@@ -126,9 +128,19 @@ int main(int argc, char* argv[]) {
     grid_shader.load("Data/Shaders/grid shader.glsl");
     camera.attach_program(&grid_shader);
 
+    Program unit_selection_shader;
+    unit_selection_shader.load("Data/Shaders/selection shader.glsl");
+    camera.attach_program(&unit_selection_shader);
+
     camera.set_mode(Camera::LOCKED);
 
     Grid grid(128, 128);
+
+    std::cout << "client id: " << client.get_id() << "\n";
+
+    UnitSelection unit_selection(client.get_id(),
+        entity_manager.get_component_manager()->get_transform_components()
+    );
 
     bool edit_mode = false;
 
@@ -138,12 +150,13 @@ int main(int argc, char* argv[]) {
 
         camera.update();
 
-        component_manager.update();
+        entity_manager.update();
 
         if(messages.size() > 0) {
            auto message = std::dynamic_pointer_cast<TransformMessage>(messages[0]);
-           akali_transform->move(message->_position);
-           std::cout << message->_position.x << " " << message->_position.z << "\n";
+           for (auto id : message->_unit_ids) {
+               // e manager get id and move
+           }
            messages.clear();
         }
 
@@ -169,6 +182,9 @@ int main(int argc, char* argv[]) {
         glDisable(GL_CULL_FACE);
 
         if(edit_mode) grid.draw(glm::vec2(128, 128), &grid_shader);
+
+        static bool lm_released = true;
+        if(lm_released == false) unit_selection.draw(&unit_selection_shader);
 
         akali.draw();
 
@@ -230,9 +246,24 @@ int main(int argc, char* argv[]) {
                     //akali_transform->move(camera.mouse_position_world());
                     static PeriodicTimer timer(1000);
                     if (timer.alert()) {
-                        auto transform_message = std::make_shared<TransformMessage>(0, camera.mouse_position_world());
+                        auto transform_message = std::make_shared<TransformMessage>(unit_selection.get_ids(), camera.mouse_position_world());
                         client.n_send(transform_message);
                     }
+                }
+
+                bool pressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+                int w, h;
+                glfwGetWindowSize(window, &w, &h);
+                if (!lm_released && pressed) {
+                    unit_selection.end(glm::vec2(xpos / (double)w, ypos / (double)h), camera.mouse_position_world());
+                }
+                else if (lm_released && pressed) {
+                    unit_selection.start(glm::vec2(xpos / (double)w, ypos / (double)h), camera.mouse_position_world());
+                    lm_released = false;
+                }
+                else if (!lm_released && !pressed) {
+                    unit_selection.finalize();
+                    lm_released = true;
                 }
             }
             else {

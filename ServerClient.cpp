@@ -53,13 +53,13 @@ void ServerClient::send(std::shared_ptr<Message> message) {
     _send_context._client = this;
     _send_context._operation = OP_WRITE;
     WSABUF buf;
-    buf.len = message->_size;
+    buf.len = message->size();
     buf.buf = _send_context._buffer;
     DWORD bytes_sent = 0;
     DWORD flags = 0;
 
     char* data = message->data();
-    memcpy(_send_context._buffer, data, message->_size);
+    memcpy(_send_context._buffer, data, message->size());
     delete[] data;
 
     int send_ret = WSASend(_socket, &buf, 1, &bytes_sent, flags, (OVERLAPPED*) &_send_context, NULL);

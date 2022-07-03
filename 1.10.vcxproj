@@ -167,7 +167,11 @@
     <ClCompile Include="..\external\imgui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="..\external\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\external\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="Collision.cpp" />
     <ClCompile Include="EntityManager.cpp" />
+    <ClCompile Include="EntityMessage.cpp" />
+    <ClCompile Include="Message.cpp" />
+    <ClCompile Include="ServerEntity.cpp" />
     <ClCompile Include="UnitComponent.cpp" />
     <ClCompile Include="BuildingComponent.cpp" />
     <ClCompile Include="Camera.cpp" />
@@ -193,10 +197,14 @@
     <ClCompile Include="TransformMessage.cpp" />
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="UnitPanel.cpp" />
+    <ClCompile Include="UnitSelection.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Collision.h" />
     <ClInclude Include="CompactArray.h" />
     <ClInclude Include="EntityManager.h" />
+    <ClInclude Include="EntityMessage.h" />
+    <ClInclude Include="ServerEntity.h" />
     <ClInclude Include="UnitComponent.h" />
     <ClInclude Include="BuildingComponent.h" />
     <ClInclude Include="Camera.h" />
@@ -226,6 +234,7 @@
     <ClInclude Include="TransformComponent.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="UnitPanel.h" />
+    <ClInclude Include="UnitSelection.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

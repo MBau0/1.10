@@ -30,7 +30,7 @@ class Client {
 
         void tick_update();
 
-        void receive_message(char* data, uint32_t size);
+        void receive_message(char* data, uint8_t id, uint32_t size);
 
         std::vector<std::shared_ptr<Message>>* get_current_messages() const;
 
@@ -38,6 +38,10 @@ class Client {
         std::vector<std::shared_ptr<Message>>* get_message_receiver();
 
         PeriodicTimer& get_tick_timer();
+
+        void set_id(int id);
+
+        int get_id() const;
     private:
         SOCKET _socket;
 
@@ -49,6 +53,8 @@ class Client {
         std::vector<std::shared_ptr<Message>>* _message_receiver;
 
         PeriodicTimer _tick_timer;
+
+        int _id;
 };
 
 #endif

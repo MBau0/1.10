@@ -38,10 +38,15 @@ public:
 
     void set_index(int index);
 
+    int get_player() const;
+
+    void set_player(int player);
+
     std::array<Component*, TOTAL_COMPONENTS> _components{ nullptr };
 private:
     int _id;
     int _index;
+    int _player;
 };
 
 #endif

@@ -11,7 +11,8 @@ static const char BUILDING_SECTION[] = "Building";
 static const char UNIT_SECTION[] = "Unit";
 
 EntityManager::EntityManager() :
-	_entities		( 200 )
+	_entities		 ( 200 ),
+	_entities_cached ( 200 )
 {}
 
 EntityManager::~EntityManager() {
@@ -20,7 +21,11 @@ EntityManager::~EntityManager() {
 	}
 }
 
-Entity* EntityManager::create(int id) {
+void EntityManager::update() {
+	_components.update();
+}
+
+Entity* EntityManager::create(int id, int player) {
 	if (_entity_cache.find(id) == _entity_cache.end()) {
 		load_cached_entity(id);
 	}
@@ -29,6 +34,7 @@ Entity* EntityManager::create(int id) {
 	auto& cached = _entity_cache.at(id);
 
 	entity->set_id(cached.entity->get_id());
+	entity->set_player(player);
 
 	for (int i = 0; i < entity->_components.size(); ++i) {
 		if (cached.entity->_components[i] != nullptr) {
@@ -70,8 +76,10 @@ Entity* EntityManager::create(int id) {
 }
 
 void EntityManager::burn(Entity*& entity) {
-	if (--_entity_cache.at(entity->get_id()).ref_count == 0) {
-		delete _entity_cache.at(entity->get_id()).entity;
+	auto& cached = _entity_cache.at(entity->get_id());
+	if (--cached.ref_count ==  0) {
+		_components_cache.burn_entity_components(cached.entity);
+		_entities_cached.remove(cached.entity);
 		_entity_cache.erase(entity->get_id());
 	}
 	_components.burn_entity_components(entity);
@@ -93,7 +101,8 @@ void EntityManager::load_cached_entity(int id) {
 	std::string entity_file = get_entity_file(id);
 
 	Cached cached;
-	cached.entity = new Entity;
+	cached.entity = _entities_cached.get();
+	cached.entity->set_id(id);
 	cached.ref_count = 0;
 
 	FileReader file(entity_file.c_str());
@@ -108,10 +117,12 @@ void EntityManager::load_cached_entity(int id) {
 	if (file.set_section(UNIT_SECTION)) {
 
 	}
+
+	_entity_cache.insert(std::pair<int, Cached>(id, cached));
 }
 
 void EntityManager::load_transform(FileReader& file, Entity* entity) {
-	auto transform = _components.get_transform();
+	auto transform = _components_cache.get_transform();
 
 	file.read(&transform->_speed, "speed.f");
 	float scale = 0.0f;
@@ -119,4 +130,8 @@ void EntityManager::load_transform(FileReader& file, Entity* entity) {
 	transform->_transform.set_scale(glm::vec3(scale, scale, scale));
 
 	entity->attach(transform);
+}
+
+ComponentManager* EntityManager::get_component_manager() {
+	return &_components;
 }

@@ -28,6 +28,8 @@ public:
     void burn_building(BuildingComponent* building);
 
     void burn_unit(UnitComponent* unit);
+
+    CompactArray<TransformComponent>* get_transform_components();
 private:
     CompactArray<TransformComponent> _transform_components;
     CompactArray<BuildingComponent> _building_components;

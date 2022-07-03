@@ -7,9 +7,13 @@
 
 struct SyncMessage : public Message {
 public:
-    SyncMessage();
     SyncMessage(int client_id, __time64_t dom_time, uint8_t step);
+
+    SyncMessage(char* buffer, int size);
+
     char* data();
+
+    bool valid() const;
 
     int        _client_id;
 
@@ -19,11 +23,9 @@ public:
 
     uint8_t _step;  
 
-    const uint8_t type() const { return SYNC_MESSAGE; }
+    const uint8_t type() const { return SYS_SYNC_MESSAGE; }
 
-    static constexpr uint8_t _ID = SYNC_MESSAGE;
-    static constexpr uint32_t _SIZE = sizeof(_ID) + sizeof(_client_id) +  sizeof(_dom_time) + sizeof(_sub_time) + sizeof(_offset) + sizeof(_step);
-private:
+    static constexpr uint8_t _ID = SYS_SYNC_MESSAGE;
 };
 
 #endif

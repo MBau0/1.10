@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <cassert>
+#include <limits>
 
 template <typename T>
 class CompactArray {
@@ -26,16 +27,16 @@ public:
 	CompactArray& operator=(const CompactArray& rhs) = delete;
 
 	 T* get() {
-		assert(_back != std::numeric_limits<uint16_t>::max());
-		uint16_t index = _indicies.back();
-		_indicies.pop_back();
-		if (index == _back) {
-			_indicies.push_back(index + 1);
-			++_back;
-		}
-		++_size;
-		_data[index].set_index(index);
-		return &_data[index];
+		 assert(_back != 65535); // max value of an index 16 bits , std::numeric_limits was giving errors so i just hardcoded
+		 uint16_t index = _indicies.back();
+		 _indicies.pop_back();
+		 if (index == _back) {
+	 		_indicies.push_back(index + 1);
+ 			++_back; 
+		 }
+		 ++_size;
+		 _data[index].set_index(index);
+		 return &_data[index];
 	}
 
 	void remove(T* t) {
@@ -97,6 +98,10 @@ public:
 		it._index = _back;
 		it._compact_array = this;
 		return it;
+	}
+
+	uint16_t size() const {
+		return _size;
 	}
 private:
 	T*        _data;

@@ -16,7 +16,15 @@ Camera::Camera(GLFWwindow* window, const CameraSettings& settings) :
 	_position				( glm::vec3(0) ),
 	_right					( glm::vec3(0) ),
 	_up						( glm::vec3(0) )
-{}
+{
+	int w, h;
+	glfwGetWindowSize(window, &w, &h);
+	glViewport(0, 0, w, h);
+
+	//GLfloat aspect = (GLfloat)w / (GLfloat)h;
+	
+	_ortho = glm::ortho(0, 1, 0, 1);
+}
 
 void Camera::update() {
 	_direction = glm::vec3(
@@ -153,6 +161,7 @@ void Camera::attach_program(Program* program) {
 	program->use();
 	glUniformMatrix4fv(program->location("view"), 1, GL_FALSE, &_view[0][0]);
 	glUniformMatrix4fv(program->location("projection"), 1, GL_FALSE, &_projection[0][0]);
+	glUniformMatrix4fv(program->location("ortho"), 1, GL_FALSE, &_ortho[0][0]);
 
 	_programs.push_back(program);
 }

@@ -87,7 +87,6 @@ Tile Grid::get_tile(GLfloat x, GLfloat z) {
 	return tile;
 }
 
-#include <iostream>
 void Grid::set_tile(Tile tile) {
 	if (tile.x < 0 || tile.z < 0 ||
 		tile.x >= _width ||

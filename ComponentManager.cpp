@@ -68,3 +68,7 @@ void ComponentManager::burn_unit(UnitComponent* unit) {
     _unit_components.remove(unit);
     unit = nullptr;
 }
+
+CompactArray<TransformComponent>* ComponentManager::get_transform_components() {
+    return &_transform_components;
+}

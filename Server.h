@@ -13,9 +13,12 @@
 
 #include "PeriodicTimer.h"
 
+#include "CompactArray.h"
+
 #pragma comment(lib, "Ws2_32.lib")
 
 class Server;
+class ServerEntity;
 
 namespace server {
     typedef void ( *message_receive_event )( char* buffer, uint32_t size, Server* server );
@@ -46,6 +49,8 @@ class Server {
         __time64_t get_tick_time();
 
         std::vector<std::shared_ptr<Message>>* get_current_messages() const;
+
+        CompactArray<ServerEntity>& get_entities();
     private:
         SOCKET _listen_socket;
 
@@ -63,6 +68,8 @@ class Server {
 
         PeriodicTimer _tick_timer;
         std::thread _tick_updater;
+
+        CompactArray<ServerEntity> _entities;
 };
 
 #endif

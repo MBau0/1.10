@@ -12,6 +12,7 @@
 #include "Message.h"
 #include "TransformMessage.h"
 #include "SyncMessage.h"
+#include "EntityMessage.h"
 
 #include "PeriodicTimer.h"
 
@@ -29,27 +30,18 @@ namespace client
 
     void receive_sync_message(char* buffer, uint32_t size, Client* client);
 
-    void transform_message(std::shared_ptr<Message> message, Client* client);
+    void receive_entity_message(char* buffer, uint32_t size, Client* client);
 
+    void handle_transform_message(std::shared_ptr<Message> message, Client* client);
 
+    void handle_entity_message(std::shared_ptr<Message> message, Client* client);
 
 };
 
-constexpr uint32_t message_size(uint8_t id) {
-    switch(id) {
-    case SYNC_MESSAGE:
-        return SyncMessage::_SIZE;
-    case TRANSFORM_MESSAGE:
-        return TransformMessage::_SIZE;
-    }
-
-    std::cout << "BAD MESSAGE ID\n";
-    return 0;
-}
-
 Client::Client() :
     _socket             ( INVALID_SOCKET ),
-    _tick_timer         ( 50 )
+    _tick_timer         ( 50 ),
+    _id                 ( -1 )
 {
     create_message_table();
 
@@ -63,10 +55,12 @@ Client::~Client() {
 }
 
 void Client::create_message_table() {
-    _message_receive_events.emplace(SYNC_MESSAGE, client::receive_sync_message);
-    _message_receive_events.emplace(TRANSFORM_MESSAGE, client::receive_transform_message);
+    _message_receive_events.emplace(SYS_SYNC_MESSAGE, client::receive_sync_message);
+    _message_receive_events.emplace(GAME_TRANSFORM_MESSAGE, client::receive_transform_message);
+    _message_receive_events.emplace(GAME_ENTITY_MESSAGE, &client::receive_entity_message);
 
-    _message_events.emplace(TRANSFORM_MESSAGE, client::transform_message);
+    _message_events.emplace(GAME_TRANSFORM_MESSAGE, client::handle_transform_message);
+    _message_events.emplace(GAME_ENTITY_MESSAGE, &client::handle_entity_message);
 }
 
 void Client::n_connect() {
@@ -107,9 +101,13 @@ void Client::n_connect() {
 }
 
 void Client::n_send(std::shared_ptr<Message> message) {
+    if (!message->valid()) {
+        return;
+    }
+
     char* data = message->data();
     size_t total_sent = 0;
-    size_t bytes_left = message->_size;
+    size_t bytes_left = message->size();
 
     while(total_sent < bytes_left) {
         int sent = send(_socket, data + total_sent, bytes_left, 0);
@@ -138,21 +136,31 @@ void Client::n_receieve() {
         bytes_handled = 0;
         r_recv = recv(_socket, buf + bytes_remaining, buf_length - bytes_remaining, 0);
 
-        if(r_recv > 0 || bytes_remaining > 0) {
+        if(r_recv > Message::PREAMBLE || bytes_remaining > Message::PREAMBLE) {
             ptr = buf;
             bytes_remaining += r_recv;
-            uint32_t size = message_size(*ptr);
 
-            while(bytes_remaining >= size) {
+            uint8_t id;
+            memcpy(&id, ptr, sizeof(uint8_t));
+            ptr += sizeof(uint8_t);
 
-                receive_message(ptr, size);
+            uint32_t size;
+            memcpy(&size, ptr, sizeof(uint32_t));
 
-                bytes_handled += size;
-                bytes_remaining -= size;
+            ptr += sizeof(uint32_t);
+
+            while(bytes_remaining >= Message::PREAMBLE + size) {
+
+                receive_message(ptr, id, size);
+
+                bytes_handled += Message::PREAMBLE + size;
+                bytes_remaining -= Message::PREAMBLE + size;
                 ptr = buf + bytes_handled;
-                
-                size = message_size(*ptr);
-                
+               
+                memcpy(&id, ptr, sizeof(uint8_t));
+                ptr += sizeof(uint8_t);
+
+                memcpy(&size, ptr, sizeof(uint32_t));
             }
 
             memcpy(buf, ptr, bytes_remaining);
@@ -188,17 +196,13 @@ PeriodicTimer& Client::get_tick_timer() {
     return _tick_timer;
 }
 
-void Client::receive_message(char* data, uint32_t size) {
+void Client::receive_message(char* data, uint8_t id, uint32_t size) {
     char* ptr = data;
-    uint8_t message_id;
-    memcpy(&message_id, ptr, sizeof(message_id));
-    ptr += sizeof(message_id);
-    size -= sizeof(message_id);
-    std::cout << "message_id: " << (int) message_id << "\n";
+    std::cout << "id: " << (int) id << "\n";
 
-    if(_message_receive_events.count(message_id)) {
+    if(_message_receive_events.count(id)) {
         std::lock_guard<std::mutex> guard(client::message_pool_mutex);
-        _message_receive_events.at(message_id)( ptr, size, this );
+        _message_receive_events.at(id)( ptr, size, this );
     }
 }
 
@@ -215,48 +219,25 @@ std::vector<std::shared_ptr<Message>>* Client::get_message_receiver() {
 }
 
 void client::receive_transform_message(char* buffer, uint32_t size, Client* client) {
-    std::cout << "I AM READING A TRANSFORM MESSSAGE COMMING FROM TEH SERVER WTF\n";
-    std::shared_ptr<TransformMessage> message = std::make_shared<TransformMessage>();
+    std::cout << "Transform Message\n";
 
-    memcpy(&message->_unit_id, buffer, sizeof(uint32_t));
-    memcpy(&message->_position[0], buffer + sizeof(uint32_t), sizeof(float) * 3);
-
-    std::cout << "Transform Message: unit_id: " << message->_unit_id << " position: " << message->_position.x << " " << message->_position.y << " " << message->_position.z << '\n';
+    std::shared_ptr<TransformMessage> message = std::make_shared<TransformMessage>(buffer, size);
 
     auto messages = client->get_current_messages();
     messages->push_back(std::static_pointer_cast<Message>( message ));
 }
 
-void client::transform_message(std::shared_ptr<Message> message, Client* client) {
-    std::cout << "SET THE UNIT DEST\n";
-
-    auto tm = std::dynamic_pointer_cast<TransformMessage>( message );
-    
-    std::cout << "x: " << tm->_position.x << " y: " << tm->_position.y << " z: " << tm->_position.z << "\n";
-
+void client::handle_transform_message(std::shared_ptr<Message> message, Client* client) {
     client->get_message_receiver()->push_back(message);
 }
 
 void client::receive_sync_message(char* buffer, uint32_t size, Client* client) {
     std::cout << "Sync Message\n";
 
-    auto message = std::make_shared<SyncMessage>();
-    
-    char* ptr = buffer;
-    memcpy(&message->_client_id, ptr, sizeof(message->_client_id));
-    ptr += sizeof(message->_client_id);
-    memcpy(&message->_dom_time, ptr, sizeof(message->_dom_time));
-    ptr += sizeof(message->_dom_time);
-    memcpy(&message->_sub_time, ptr, sizeof(message->_sub_time));
-    ptr += sizeof(message->_sub_time);
-    memcpy(&message->_offset, ptr, sizeof(message->_offset));
-    ptr += sizeof(message->_offset);
-    memcpy(&message->_step, ptr, sizeof(message->_step));
-    ptr += sizeof(message->_step);
+    auto message = std::make_shared<SyncMessage>(buffer, size);
 
     if(message->_step == 0) {
-
-
+        client->set_id(message->_client_id);
         __time64_t time = client->get_tick_timer().time();
         __time64_t delta = time - message->_dom_time;
         message->_dom_time = delta;
@@ -268,4 +249,24 @@ void client::receive_sync_message(char* buffer, uint32_t size, Client* client) {
     else if(message->_step == 2) {
         client->get_tick_timer().offset(message->_offset);
     }
+}
+
+void client::receive_entity_message(char* buffer, uint32_t size, Client* client) {
+    std::cout << "Entity Message\n";
+    auto message = std::make_shared<EntityMessage>(buffer, size);
+
+    auto messages = client->get_current_messages();
+    messages->push_back(std::static_pointer_cast<Message>(message));
+}
+
+void client::handle_entity_message(std::shared_ptr<Message> message, Client* client) {
+    client->get_message_receiver()->push_back(message);
+}
+
+void Client::set_id(int id) {
+    _id = id;
+}
+
+int Client::get_id() const {
+    return _id;
 }

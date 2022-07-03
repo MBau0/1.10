@@ -40,9 +40,6 @@ public:
 
 	//void place_building(std::shared_ptr<Entity> building);
 private:
-	// init vertex buffer when constructed
-	void create_buffers();
-
 	void update_height_buffer();
 
 	static constexpr TileVertex _tile_mesh[4] = 

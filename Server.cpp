@@ -17,6 +17,9 @@
 #include "Message.h"
 #include "TransformMessage.h"
 #include "SyncMessage.h"
+#include "EntityMessage.h"
+
+#include "ServerEntity.h"
 
 #include "Debug.h"
 
@@ -33,12 +36,15 @@ namespace server
 
     void receive_sync_message(char* buffer, uint32_t size, Server* server);
 
+    void receive_entity_message(char* buffer, uint32_t size, Server* server);
+
 };
 
 Server::Server() : 
     _listen_socket  ( INVALID_SOCKET ),
     _started        ( false ),
-    _tick_timer     ( 50 )
+    _tick_timer     ( 50 ),
+    _entities       ( 200 )
 {
     WSAData wsaData;
     int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -74,8 +80,9 @@ Server::~Server() {
 }
 
 void Server::create_message_table() {
-    _message_receive_events.emplace(SYNC_MESSAGE, server::receive_sync_message);
-    _message_receive_events.emplace(TRANSFORM_MESSAGE, server::receive_transform_message);
+    _message_receive_events.emplace(SYS_SYNC_MESSAGE, server::receive_sync_message);
+    _message_receive_events.emplace(GAME_TRANSFORM_MESSAGE, server::receive_transform_message);
+    _message_receive_events.emplace(GAME_ENTITY_MESSAGE, &server::receive_entity_message);
 }
 
 bool Server::start() {
@@ -237,7 +244,15 @@ std::vector<std::shared_ptr<Message>>* Server::get_current_messages() const {
     return _message_pool.get_current();
 }
 
+CompactArray<ServerEntity>& Server::get_entities() {
+    return _entities;
+}
+
 void Server::send_to_client(int client_id, std::shared_ptr<Message> message) {
+    if (!message->valid()) {
+        return;
+    }
+
     for(auto client : _clients) {
         if(client->_id == client_id) {
             client->send(message);
@@ -251,31 +266,22 @@ void Server::receive_message(PER_IO_OPERATION* context, DWORD bytes_transferred)
     char* ptr = context->_buffer;
     memcpy(&message_id, ptr, sizeof(message_id));
     ptr += sizeof(message_id);
-    bytes_transferred -= sizeof(message_id);
     std::cout << "message_id: " << (int)message_id << "\n";
+
+    uint32_t size;
+    memcpy(&size, ptr, sizeof(uint32_t));
+    ptr += sizeof(uint32_t);
 
     if(_message_receive_events.count(message_id)) {
         std::lock_guard<std::mutex> guard(server::message_pool_mutex);
-        _message_receive_events.at(message_id)( ptr, bytes_transferred, this );
+        _message_receive_events.at(message_id)( ptr, size, this );
     }
 }
 
 void server::receive_sync_message(char* buffer, uint32_t size, Server* server) {
     std::cout << "Sync Message\n";
 
-    auto message = std::make_shared<SyncMessage>();
-
-    char* ptr = buffer;
-    memcpy(&message->_client_id, ptr, sizeof(message->_client_id));
-    ptr += sizeof(message->_client_id);
-    memcpy(&message->_dom_time, ptr, sizeof(message->_dom_time));
-    ptr += sizeof(message->_dom_time);
-    memcpy(&message->_sub_time, ptr, sizeof(message->_sub_time));
-    ptr += sizeof(message->_sub_time);
-    memcpy(&message->_offset, ptr, sizeof(message->_offset));
-    ptr += sizeof(message->_offset);
-    memcpy(&message->_step, ptr, sizeof(message->_step));
-    ptr += sizeof(message->_step);
+    auto message = std::make_shared<SyncMessage>(buffer, size);
 
     if(message->_step == 1) {
         __time64_t delta = server->get_tick_time() - message->_sub_time;
@@ -289,13 +295,32 @@ void server::receive_sync_message(char* buffer, uint32_t size, Server* server) {
 }
 
 void server::receive_transform_message(char* buffer, uint32_t size, Server* server) {
-    std::shared_ptr<TransformMessage> message = std::make_shared<TransformMessage>();
+    std::cout << "Transform Message\n";
 
-    memcpy(&message->_unit_id, buffer, sizeof(uint32_t));
-    memcpy(&message->_position[0], buffer + sizeof(uint32_t), sizeof(float) * 3);
-
-    std::cout << "Transform Message: unit_id: " << message->_unit_id << " position: " << message->_position.x << " " << message->_position.y << " " << message->_position.z << '\n';
+    std::shared_ptr<TransformMessage> message = std::make_shared<TransformMessage>(buffer, size);
 
     auto messages = server->get_current_messages();
     messages->push_back(std::static_pointer_cast<Message>(message));
+}
+
+void server::receive_entity_message(char* buffer, uint32_t size, Server* server) {
+    std::cout << "Entity Message\n";
+
+    std::shared_ptr<EntityMessage> message = std::make_shared<EntityMessage>(buffer, size);
+
+    std::shared_ptr<EntityMessage> response;
+    if (message->_op == OP_CREATE) {
+        auto entity = server->get_entities().get();
+        entity->set_id(message->_entity_id);
+        entity->set_player(message->_client_id);
+        response = std::make_shared<EntityMessage>(OP_CREATE, entity->get_id(), entity->get_index(), entity->get_player());
+    }
+    else if (message->_op == OP_DELETE) {
+        ServerEntity entity(message->_entity_id, message->_index, message->_client_id);
+        server->get_entities().remove(&entity);
+        response = std::make_shared<EntityMessage>(OP_DELETE, -1, -1, -1);
+    }
+
+    auto messages = server->get_current_messages();
+    messages->push_back(std::static_pointer_cast<Message>(response));
 }
