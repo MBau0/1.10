@@ -1,9 +1,10 @@
 #include "Entity.h"
 
 Entity::Entity() :
-	_id			( -1 ),
-	_index		( -1 ),
-	_player		(  0 )
+	_id			  ( -1 ),
+	_index		  ( -1 ),
+	_player		  (  0 ),
+	_server_index ( -1 )
 {}
 
 Entity::~Entity() {
@@ -32,4 +33,12 @@ int Entity::get_player() const {
 
 void Entity::set_player(int player) {
 	_player = player;
+}
+
+int Entity::get_server_index() const {
+	return _server_index;
+}
+
+void Entity::set_server_index(int server_index) {
+	_server_index = server_index;
 }

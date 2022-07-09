@@ -19,12 +19,14 @@ void TransformComponent::copy(Entity* const entity, const TransformComponent& rh
     _moving = rhs._moving;
 }
 
+#include <iostream>
 void TransformComponent::update() {
     if(_moving) {
         auto position = _transform.get_position();
         position = position + (_direction * _speed);
         _transform.set_position(position);
         _total_counter += abs(_direction * _speed);
+       // std::cout << "move?: " << position.x << " " << position.z << "\n";
         if(_total_counter.x >= _total_dist.x && _total_counter.y >= _total_dist.y && _total_counter.z >= _total_dist.z) {
             position = _destination;
             _transform.set_position(position);

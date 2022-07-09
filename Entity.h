@@ -42,11 +42,16 @@ public:
 
     void set_player(int player);
 
+    int get_server_index() const;
+
+    void set_server_index(int server_index);
+
     std::array<Component*, TOTAL_COMPONENTS> _components{ nullptr };
 private:
     int _id;
     int _index;
     int _player;
+    int _server_index;
 };
 
 #endif

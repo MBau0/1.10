@@ -75,12 +75,12 @@ const std::vector<Entity*>& UnitSelection::get() const {
 	return _selection;
 }
 
-const std::vector<uint16_t> UnitSelection::get_ids() const {
-	std::vector<uint16_t> ids;
-	ids.reserve(_selection.size());
-	for (auto ptr : _selection) {
-		ids.push_back(ptr->get_id());
+const std::vector<uint16_t> UnitSelection::get_indices() const {
+	std::vector<uint16_t> indices;
+	indices .reserve(_selection.size());
+	for (auto entity : _selection) {
+		indices.push_back(entity->get_server_index());
 	}
 
-	return ids;
+	return indices;
 }

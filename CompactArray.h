@@ -44,6 +44,24 @@ public:
 		--_size;
 	}
 
+	const bool valid(int index) const {
+		if (index < _back) {
+			for (auto i : _indicies) {
+				if (index == i) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	T* at(int index) const {
+		return (valid(index)) ? &_data[index] : nullptr;
+	}
+
 	struct Iterator {
 		T operator*() {
 			return *_ptr;

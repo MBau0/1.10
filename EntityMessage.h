@@ -9,7 +9,7 @@ enum {
 };
 
 struct EntityMessage : public Message {
-    EntityMessage(uint8_t op, int entity_id, int index, int client_id);
+    EntityMessage(uint8_t op, int entity_id, int index, int client_id, int server_index);
 
     EntityMessage(char* buffer, int size);
 
@@ -20,6 +20,8 @@ struct EntityMessage : public Message {
     int _index;
 
     int _client_id;
+
+    int _server_index;
 
     char* data();
 

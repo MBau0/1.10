@@ -10,6 +10,12 @@
 
 #include <string>
 #include <map>
+#include <memory>
+
+class Client;
+
+struct EntityMessage;
+struct TransformMessage;
 
 struct Cached {
 	Entity* entity;
@@ -18,17 +24,21 @@ struct Cached {
 
 class EntityManager {
 public:
-	EntityManager();
+	EntityManager(Client* client);
 
 	~EntityManager();
 
 	void update();
 
-	Entity* create(int id, int player);
+	Entity* create(int id, int player, int server_index = -1);
 
-	void burn(Entity*& entity);
+	void burn(Entity* entity);
 
 	void load_cached_entity(int id);
+
+	void entity_message(std::shared_ptr<EntityMessage> message);
+
+	void transform_message(std::shared_ptr<TransformMessage> message);
 
 	ComponentManager* get_component_manager();
 private:
@@ -40,9 +50,12 @@ private:
 	CompactArray<Entity> _entities_cached;
 
 	std::map<int, Cached> _entity_cache;
+	std::map<int, int> _server_client_index;
 
 	ComponentManager _components;
 	ComponentManager _components_cache;
+
+	Client* _client;
 };
 
 #endif

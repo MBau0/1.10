@@ -27,7 +27,7 @@ public:
 
 	const std::vector<Entity*>& get() const;
 
-	const std::vector<uint16_t> get_ids() const;
+	const std::vector<uint16_t> get_indices() const;
 private:
 	glm::vec2 _view_start;
 	glm::vec2 _view_end;

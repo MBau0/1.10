@@ -31,6 +31,7 @@
 #include "EntityManager.h"
 
 #include "UnitSelection.h"
+#include "MessageHandler.h"
 
 constexpr GLfloat CLEAR_COLOR[4] = { 0, 0, 0, 0 };
 
@@ -64,11 +65,12 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    std::vector<std::shared_ptr<Message>> messages;
 
     Client client;
     client.n_connect();
-    client.set_message_receiver(&messages);
+
+    EntityManager entity_manager(&client);
+    MessageHandler message_handler(&client, &entity_manager);
 
     std::thread t = std::thread(&Client::n_receieve, &client);
     t.detach();
@@ -100,18 +102,17 @@ int main(int argc, char* argv[]) {
     map.load_assimp("Data/Models/Map/", "map.obj");
     map.set_transform(Transform(glm::vec3(0, 0, 0)));
 
-    EntityManager entity_manager;
-
     Scene akali;
     akali.load_assimp("Data/Models/Akali/", "akali.dae");
-    Entity* akali_entity = entity_manager.create(0, 1);
+    Entity* akali_entity = entity_manager.create(0, client.get_id());  // create locally and then tell server that u created an entity  // server should keeep track of all entities across all clients
     auto akali_transform = akali_entity->get<TransformComponent>();
+
+    std::cout << "akakali: " << akali_entity->get_index() << " " << akali_entity->get_id() << "\n";
 
     Scene building;
     building.load_assimp("Data/Models/Box/", "box.obj");
-    Entity* building_entity = entity_manager.create(1, 0);
+    Entity* building_entity = entity_manager.create(1, client.get_id());
     auto building_transform = building_entity->get<TransformComponent>();
-    building_transform->move(glm::vec3(1, 1, 1));
 
     Program basic_shader;
     basic_shader.load("Data/Shaders/basic shader.glsl");
@@ -150,15 +151,9 @@ int main(int argc, char* argv[]) {
 
         camera.update();
 
-        entity_manager.update();
+        message_handler.process();
 
-        if(messages.size() > 0) {
-           auto message = std::dynamic_pointer_cast<TransformMessage>(messages[0]);
-           for (auto id : message->_unit_ids) {
-               // e manager get id and move
-           }
-           messages.clear();
-        }
+        entity_manager.update();
 
         akali.set_transform(akali_transform->_transform);
         building.set_transform(building_transform->_transform);
@@ -246,7 +241,7 @@ int main(int argc, char* argv[]) {
                     //akali_transform->move(camera.mouse_position_world());
                     static PeriodicTimer timer(1000);
                     if (timer.alert()) {
-                        auto transform_message = std::make_shared<TransformMessage>(unit_selection.get_ids(), camera.mouse_position_world());
+                        auto transform_message = std::make_shared<TransformMessage>(unit_selection.get_indices(), camera.mouse_position_world());
                         client.n_send(transform_message);
                     }
                 }

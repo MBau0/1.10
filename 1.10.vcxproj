@@ -171,6 +171,7 @@
     <ClCompile Include="EntityManager.cpp" />
     <ClCompile Include="EntityMessage.cpp" />
     <ClCompile Include="Message.cpp" />
+    <ClCompile Include="MessageHandler.cpp" />
     <ClCompile Include="ServerEntity.cpp" />
     <ClCompile Include="UnitComponent.cpp" />
     <ClCompile Include="BuildingComponent.cpp" />
@@ -204,6 +205,7 @@
     <ClInclude Include="CompactArray.h" />
     <ClInclude Include="EntityManager.h" />
     <ClInclude Include="EntityMessage.h" />
+    <ClInclude Include="MessageHandler.h" />
     <ClInclude Include="ServerEntity.h" />
     <ClInclude Include="UnitComponent.h" />
     <ClInclude Include="BuildingComponent.h" />

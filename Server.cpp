@@ -313,12 +313,13 @@ void server::receive_entity_message(char* buffer, uint32_t size, Server* server)
         auto entity = server->get_entities().get();
         entity->set_id(message->_entity_id);
         entity->set_player(message->_client_id);
-        response = std::make_shared<EntityMessage>(OP_CREATE, entity->get_id(), entity->get_index(), entity->get_player());
+        entity->set_server_index(entity->get_index());
+        response = std::make_shared<EntityMessage>(OP_CREATE, entity->get_id(), message->_index, entity->get_player(), entity->get_server_index());
     }
     else if (message->_op == OP_DELETE) {
-        ServerEntity entity(message->_entity_id, message->_index, message->_client_id);
+        ServerEntity entity(message->_entity_id, message->_server_index, message->_client_id, message->_server_index);
+        response = std::make_shared<EntityMessage>(OP_DELETE, message->_entity_id, message->_index, message->_client_id, message->_server_index);
         server->get_entities().remove(&entity);
-        response = std::make_shared<EntityMessage>(OP_DELETE, -1, -1, -1);
     }
 
     auto messages = server->get_current_messages();

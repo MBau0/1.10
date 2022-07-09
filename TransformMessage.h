@@ -8,12 +8,12 @@
 #include <vector>
 
 struct TransformMessage : public Message {
-    TransformMessage(std::vector<uint16_t> unit_ids, glm::vec3 position);
+    TransformMessage(std::vector<uint16_t> indices, glm::vec3 position);
 
     TransformMessage(char* buffer, int size);
 
-    std::vector<uint16_t> _unit_ids;
-    int _num_ids;
+    std::vector<uint16_t> _indices;
+    int _num_indices;
     glm::vec3 _position;
 
     char* data();
