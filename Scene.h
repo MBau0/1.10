@@ -18,19 +18,18 @@ class Scene {
 public:
 	Scene();
 
-	void draw(int mode = GL_TRIANGLES, glm::mat4 transform = glm::mat4(1));
+	void draw(int mode = GL_TRIANGLES, Transform transform = Transform());
 
 	Scene* new_child();
 	void add_child(std::unique_ptr<Scene> child);
 
-	void attach_program(Program* program);
-	void set_transform(Transform transform);
+	void attach_program(const Program* program);
 
 	bool load_assimp(std::string_view directory, std::string_view file);
 
 	const Mesh* get_mesh() const; // only works if there is only one mesh. used for map
 private:
-	void attach_program(Program* program, Scene* child) const;
+	void attach_program(const Program* program, Scene* child) const;
 	void construct_scene_from_assimp(const aiScene* ai_scene, aiNode* node, Scene* scene, std::string_view directory, std::string depth) const;
 
 	Scene* _parent;
@@ -38,7 +37,7 @@ private:
 
 	std::vector<Mesh> _meshes;
 	Transform _transform;
-	Program* _program;
+	const Program* _program;
 };
 
 #endif

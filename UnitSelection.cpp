@@ -3,14 +3,19 @@
 #include "Program.h"
 
 #include "TransformComponent.h"
+#include "ActionComponent.h"
 
 #include "Collision.h"
 
+#include "UnitPanel.h"
+
 #include "Entity.h"
 
-UnitSelection::UnitSelection(int player, CompactArray<TransformComponent>* transform_components) :
+UnitSelection::UnitSelection(int player, CompactArray<TransformComponent>* transform_components, const Program* program, UnitPanel* unit_panel) :
 	_player						( player ),
-	_transform_components		( transform_components )
+	_transform_components		( transform_components ),
+	_program					( program ),
+	_unit_panel					( unit_panel )
 {}
 
 void UnitSelection::start(glm::vec2 view, glm::vec3 world) {
@@ -26,7 +31,6 @@ void UnitSelection::end(glm::vec2 view, glm::vec3 world) {
 	_world_end = world;
 }
 
-#include <iostream>
 void UnitSelection::finalize() {
 	glm::vec4 region(
 		_world_start.x,
@@ -47,17 +51,27 @@ void UnitSelection::finalize() {
 
 	for (auto it = _transform_components->begin(); it != _transform_components->end(); ++it) {
 		if (it->_entity->get_player() == _player && 
-			Collision::within_region(it->_transform.get_position(), region)) {
+			Collision::within_region(it->_transform._position, region)) {
 			_selection.push_back(it->_entity);
 		}
 	}
+
+	for (auto entity : _selection) {
+		if (auto action = entity->get<ActionComponent>()) {
+			_unit_panel->set_actions(&action->_actions);
+			return; // only use first entity for now
+		}
+	}
+
+	// no actions found
+	_unit_panel->set_actions(nullptr);
 }
 
-void UnitSelection::draw(Program* program) {
-	program->use();
+void UnitSelection::draw() {
+	_program->use();
 
-	glUniform2fv(program->location("start"), 1, &_view_start[0]);
-	glUniform2fv(program->location("end"), 1, &_view_end[0]);
+	glUniform2fv(_program->location("start"), 1, &_view_start[0]);
+	glUniform2fv(_program->location("end"), 1, &_view_end[0]);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glLineWidth(2);

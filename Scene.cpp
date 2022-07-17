@@ -71,17 +71,17 @@ Scene::Scene() :
 	_program	( nullptr )
 {}
 
-void Scene::draw(int mode, glm::mat4 transform) {
-	auto model = transform * _transform.get_model();
+void Scene::draw(int mode, Transform transform) {
+	transform += _transform;
 
 	for(auto& mesh : _meshes) {
 		if(_program) {
-			mesh.draw(_program, model, mode);
+			mesh.draw(_program, mode, transform);
 		}
 	}
 
 	for(auto& child : _children) {
-		child->draw(mode, model);
+		child->draw(mode, transform);
 	}
 }
 
@@ -96,7 +96,7 @@ void Scene::add_child(std::unique_ptr<Scene> child) {
 	_children.push_back(std::move(child));
 }
 
-void Scene::attach_program(Program* program) {
+void Scene::attach_program(const Program* program) {
 	_program = program;
 
 	for(auto& child : _children) {
@@ -104,11 +104,7 @@ void Scene::attach_program(Program* program) {
 	}
 }
 
-void Scene::set_transform(Transform transform) {
-	_transform = transform;
-}
-
-void Scene::attach_program(Program* program, Scene* scene) const {
+void Scene::attach_program(const Program* program, Scene* scene) const {
 	scene->_program = program;
 
 	for(auto& child : scene->_children) {
@@ -155,9 +151,9 @@ void Scene::construct_scene_from_assimp(const aiScene* ai_scene, aiNode* node, S
 	const glm::vec3 position = glm::vec3(ai_position.x, ai_position.y, ai_position.z);
 	const glm::vec3 scale = glm::vec3(ai_scale.x, ai_scale.y, ai_scale.z);
 	const glm::vec3 rotation = glm::vec3(ai_rotation.x, ai_rotation.y, ai_rotation.z);
-	scene->_transform.set_position(position);
-	scene->_transform.set_scale(scale);
-	scene->_transform.set_rotation(rotation);
+	scene->_transform._position = position;
+	scene->_transform._scale = scale;
+	scene->_transform._rotation = rotation;
 
 	depth.push_back('-');
 	for(unsigned int i = 0; i < node->mNumChildren; ++i) {

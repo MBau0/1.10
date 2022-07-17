@@ -1,0 +1,6 @@
+# Shaders
+
+0 Data/Shaders/grid shader.glsl
+1 Data/Shaders/basic shader.glsl
+2 Data/Shaders/texture shader.glsl
+3 Data/Shaders/selection shader.glsl

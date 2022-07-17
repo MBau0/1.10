@@ -33,6 +33,11 @@
 #include "UnitSelection.h"
 #include "MessageHandler.h"
 
+#include "ProgramManager.h"
+#include "SceneManager.h"
+
+#include "Benchmark.h"
+
 constexpr GLfloat CLEAR_COLOR[4] = { 0, 0, 0, 0 };
 
 void check_for_gl_error() {
@@ -65,18 +70,6 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-
-    Client client;
-    client.n_connect();
-
-    EntityManager entity_manager(&client);
-    MessageHandler message_handler(&client, &entity_manager);
-
-    std::thread t = std::thread(&Client::n_receieve, &client);
-    t.detach();
-    std::thread t2 = std::thread(&Client::tick_update, &client);
-    t2.detach();
-
     glfwInit();
 
     GLFWwindow* window = glfwCreateWindow(1600, 900, "1.10", nullptr, nullptr);
@@ -89,8 +82,8 @@ int main(int argc, char* argv[]) {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
-    ImageManager imageManager;
-    UI ui(window, imageManager.get_abilities());
+    ImageManager image_manager;
+    UI ui(window, &image_manager);
 
     PeriodicTimer periodic_timer(200);
     FrameTimer frame_timer;
@@ -98,49 +91,35 @@ int main(int argc, char* argv[]) {
     CameraSettings camera_settings;
     Camera camera(window, camera_settings);
 
+    ProgramManager program_manager;
+    program_manager.attach_camera(&camera);
+    SceneManager scene_manager(&program_manager);
+
+    Client client;
+    client.n_connect();
+
+    EntityManager entity_manager(&client, &scene_manager);
+    MessageHandler message_handler(&client, &entity_manager);
+
+    std::thread t = std::thread(&Client::n_receieve, &client);
+    t.detach();
+    std::thread t2 = std::thread(&Client::tick_update, &client);
+    t2.detach();
+
     Scene map;
     map.load_assimp("Data/Models/Map/", "map.obj");
-    map.set_transform(Transform(glm::vec3(0, 0, 0)));
+    map.attach_program(program_manager.get(1));
 
-    Scene akali;
-    akali.load_assimp("Data/Models/Akali/", "akali.dae");
-    Entity* akali_entity = entity_manager.create(0, client.get_id());  // create locally and then tell server that u created an entity  // server should keeep track of all entities across all clients
-    auto akali_transform = akali_entity->get<TransformComponent>();
-
-    std::cout << "akakali: " << akali_entity->get_index() << " " << akali_entity->get_id() << "\n";
-
-    Scene building;
-    building.load_assimp("Data/Models/Box/", "box.obj");
-    Entity* building_entity = entity_manager.create(1, client.get_id());
-    auto building_transform = building_entity->get<TransformComponent>();
-
-    Program basic_shader;
-    basic_shader.load("Data/Shaders/basic shader.glsl");
-    map.attach_program(&basic_shader);
-    camera.attach_program(&basic_shader);
-
-    Program texture_shader;
-    texture_shader.load("Data/Shaders/texture shader.glsl");
-    akali.attach_program(&texture_shader);
-    camera.attach_program(&texture_shader);
-    building.attach_program(&texture_shader);
-
-    Program grid_shader;
-    grid_shader.load("Data/Shaders/grid shader.glsl");
-    camera.attach_program(&grid_shader);
-
-    Program unit_selection_shader;
-    unit_selection_shader.load("Data/Shaders/selection shader.glsl");
-    camera.attach_program(&unit_selection_shader);
+    Entity* akali_entity = entity_manager.create(0, client.get_id());
 
     camera.set_mode(Camera::LOCKED);
 
-    Grid grid(128, 128);
-
-    std::cout << "client id: " << client.get_id() << "\n";
+    Grid grid(128, 128, program_manager.get(0));
 
     UnitSelection unit_selection(client.get_id(),
-        entity_manager.get_component_manager()->get_transform_components()
+        entity_manager.get_component_manager()->get_transform_components(),
+        program_manager.get(3),
+        ui.get_unit_panel()
     );
 
     bool edit_mode = false;
@@ -155,14 +134,11 @@ int main(int argc, char* argv[]) {
 
         entity_manager.update();
 
-        akali.set_transform(akali_transform->_transform);
-        building.set_transform(building_transform->_transform);
-
         static bool build_mode = false;
         if (build_mode) {
             auto pos = camera.mouse_position_world();
-            building_transform->_transform.set_position(pos);
-            building.set_transform(building_transform->_transform);
+            //building_transform->_transform.set_position(pos);
+            //building.set_transform(building_transform->_transform);
         }
         
         ui.update();
@@ -176,14 +152,12 @@ int main(int argc, char* argv[]) {
         map.draw();
         glDisable(GL_CULL_FACE);
 
-        if(edit_mode) grid.draw(glm::vec2(128, 128), &grid_shader);
+        if(edit_mode) grid.draw(glm::vec2(128, 128));
 
         static bool lm_released = true;
-        if(lm_released == false) unit_selection.draw(&unit_selection_shader);
+        if(lm_released == false) unit_selection.draw();
 
-        akali.draw();
-
-        building.draw();
+        entity_manager.draw();
 
         ui.draw();
         
@@ -238,7 +212,6 @@ int main(int argc, char* argv[]) {
 
             if (!edit_mode) {
                 if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT)) {
-                    //akali_transform->move(camera.mouse_position_world());
                     static PeriodicTimer timer(1000);
                     if (timer.alert()) {
                         auto transform_message = std::make_shared<TransformMessage>(unit_selection.get_indices(), camera.mouse_position_world());

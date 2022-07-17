@@ -6,17 +6,22 @@
 #include <memory>
 #include <vector>
 
+class Action;
+class ImageManager;
+
 class UnitPanel {
 public:
-	UnitPanel(const std::vector<GLuint>& abilities);
+	UnitPanel(ImageManager* image_manager);
 
 	void update();
 
-	void update_ability_frame();
+	void update_action_frame();
 
-	void set_ability_image() { }
+	void set_actions(std::vector<Action*>* actions);
 private:
-	const std::vector<GLuint>& _abilities;
+	ImageManager* _image_manager;
+
+	std::vector<Action*>* _actions;
 };
 
 #endif

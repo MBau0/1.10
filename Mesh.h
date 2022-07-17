@@ -26,7 +26,7 @@ public:
 
 	void create_buffers();
 
-	void draw(Program* program, glm::mat4x4 model, int mode);
+	void draw(const Program* program, int mode, const Transform transform) const;
 
 	std::vector<Texture>				_textures;
 	std::vector<glm::vec3>				_vertices;

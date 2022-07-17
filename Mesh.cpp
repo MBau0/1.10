@@ -85,11 +85,11 @@ void Mesh::create_buffers() {
 	}
 }
 
-void Mesh::draw(Program* program, glm::mat4x4 model, int mode) {
+void Mesh::draw(const Program* program, int mode, const Transform transform) const {
 	glBindVertexArray(_vao);
 	program->use();
 
-	glUniformMatrix4fv(program->location("model"), 1, GL_FALSE, &model[0][0]);
+	glUniformMatrix4fv(program->location("model"), 1, GL_FALSE, &transform.get_model()[0][0]);
 
 	for(unsigned int i = 0; i < _textures.size(); ++i) {
 		glActiveTexture(GL_TEXTURE0 + i);

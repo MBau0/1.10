@@ -46,12 +46,17 @@ public:
 
     void set_server_index(int server_index);
 
+    int get_scene() const;
+
+    void set_scene(int scene);
+
     std::array<Component*, TOTAL_COMPONENTS> _components{ nullptr };
 private:
     int _id;
     int _index;
     int _player;
     int _server_index;
+    int _scene;
 };
 
 #endif

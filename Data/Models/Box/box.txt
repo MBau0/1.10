@@ -1,0 +1,5 @@
+# Box
+
+dir.s Data/Models/Box/
+model.s box.obj
+program.i 2

@@ -8,9 +8,9 @@
 
 static const char GLSL_VERSION_STR[] = "#version 450 core";
 
-UI::UI(GLFWwindow* window, const std::vector<GLuint>& abilities) :
+UI::UI(GLFWwindow* window, ImageManager* image_manager) :
 	_window			( window ),
-	_unit_panel		( abilities )
+	_unit_panel		( image_manager )
 {
 	ImGui::CreateContext();
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -38,6 +38,6 @@ void UI::draw() const {
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-UnitPanel& UI::get_unit_panel() {
-	return _unit_panel;
+UnitPanel* UI::get_unit_panel() {
+	return &_unit_panel;
 }

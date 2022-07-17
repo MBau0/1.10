@@ -5,13 +5,15 @@
 #include "TransformComponent.h"
 #include "BuildingComponent.h"
 #include "UnitComponent.h"
+#include "ActionComponent.h"
 
 #include "Entity.h"
 
 ComponentManager::ComponentManager() :
     _transform_components       ( 20 ),
     _building_components        ( 20 ),
-    _unit_components            ( 20 ) // this needs to be extended
+    _unit_components            ( 20 ), // this needs to be extended
+    _action_components          ( 20 )
 {}
 
 void ComponentManager::update() {
@@ -26,6 +28,10 @@ void ComponentManager::update() {
     for (auto it = _unit_components.begin(); it != _unit_components.end(); ++it) {
         it->update();
     }
+
+    for (auto it = _action_components.begin(); it != _action_components.end(); ++it) {
+        it->update();
+    }
 }
 
 TransformComponent* ComponentManager::get_transform() {
@@ -38,6 +44,10 @@ BuildingComponent* ComponentManager::get_building() {
 
 UnitComponent* ComponentManager::get_unit() {
     return _unit_components.get();
+}
+
+ActionComponent* ComponentManager::get_action() {
+    return _action_components.get();
 }
 
 void ComponentManager::burn_entity_components(Entity* entity) {
@@ -67,6 +77,11 @@ void ComponentManager::burn_building(BuildingComponent* building) {
 void ComponentManager::burn_unit(UnitComponent* unit) {
     _unit_components.remove(unit);
     unit = nullptr;
+}
+
+void ComponentManager::burn_action(ActionComponent* action) {
+    _action_components.remove(action);
+    action = nullptr;
 }
 
 CompactArray<TransformComponent>* ComponentManager::get_transform_components() {

@@ -18,10 +18,10 @@ public:
 
 	ImageManager& operator=(const ImageManager&) = delete;
 
-	const std::vector<GLuint>& get_abilities() const;
+	const std::vector<GLuint>& get_actions() const;
 
 private:
-	std::vector<GLuint> _abilities;
+	std::vector<GLuint> _actions;
 };
 
 #endif

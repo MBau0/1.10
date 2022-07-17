@@ -10,7 +10,6 @@ void UnitComponent::copy(Entity* const entity, const UnitComponent& rhs) {
 	// все
 }
 
-
 void UnitComponent::update() {
 
 }

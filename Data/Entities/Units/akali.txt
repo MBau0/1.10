@@ -1,8 +1,24 @@
 # Entity
-name "Akali"
+name.s "Akali"
+scene.i 0
 
 # Transform
-speed.f 0.01
+speed.f 10.0
 scale.f 0.05
 
 # Unit
+
+# Action
+a0.i 0
+a1.i 0
+a2.i 0
+a3.i 0
+a4.i 0
+a5.i 0
+a6.i 0
+a7.i 0
+a8.i 1
+a9.i 0
+a10.i 0
+a11.i 0
+a12.i 0

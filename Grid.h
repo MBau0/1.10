@@ -4,6 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
+#include <memory>
 
 class Program;
 
@@ -19,12 +20,12 @@ struct Tile {
 class Grid {
 public:
 
-	Grid(int width, int length);
+	Grid(int width, int length, const Program* program);
 
 	// should destroy buffers
 	~Grid();
 
-	void draw(glm::vec2 num_tiles, Program* program);
+	void draw(glm::vec2 num_tiles);
 
 	void highlight_tile(glm::vec3 mouse_position_world);
 
@@ -59,6 +60,8 @@ private:
 
 	int _width;
 	int _length;
+
+	const Program* _program;
 };
 
 #endif

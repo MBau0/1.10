@@ -8,14 +8,15 @@
 
 static const char HEIGHT_MAP_FILE[] = "Data/height_map.data";
 
-Grid::Grid(int width, int length) :
+Grid::Grid(int width, int length, const Program* program) :
 	_vao					( 0 ),
 	_vertex_buffer			( 0 ),
 	_height_buffer			( 0 ),
 	_size					( glm::vec2(7.8125, 7.8125) ),
 	_highlighted_tile		( { -1, -1 }),
 	_width					( width ),
-	_length					( length )
+	_length					( length ),
+	_program				( program )
 {
 	glCreateVertexArrays(1, &_vao);
 	glBindVertexArray(_vao);
@@ -41,13 +42,13 @@ Grid::~Grid() {
 	glDeleteVertexArrays(1, &_vao);
 }
 
-void Grid::draw(glm::vec2 num_tiles, Program* program) {
+void Grid::draw(glm::vec2 num_tiles) {
 	glBindVertexArray(_vao);
-	program->use();
+	_program->use();
 
-	glUniform2fv(program->location("size"), 1, &_size[0]);
-	glUniform2fv(program->location("num_tiles"), 1, &num_tiles[0]);
-	glUniform2fv(program->location("highlight"), 1, &_highlighted_tile[0]);
+	glUniform2fv(_program->location("size"), 1, &_size[0]);
+	glUniform2fv(_program->location("num_tiles"), 1, &num_tiles[0]);
+	glUniform2fv(_program->location("highlight"), 1, &_highlighted_tile[0]);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glEnable(GL_CULL_FACE);

@@ -24,7 +24,10 @@ struct TransformComponent : public Component {
     glm::vec3 _start;
     glm::vec3 _total_counter;
     glm::vec3 _total_dist;
+
     bool _moving;
+
+    unsigned long _last_frame;
 };
 
 #endif

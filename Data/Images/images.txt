@@ -1,2 +1,3 @@
-# Abilities
-0 Data\\Images\\Abilities\\background.bmp
+# Actions
+0 Data\Images\Actions\background.bmp
+1 Data\Images\Actions\test.bmp

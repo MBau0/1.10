@@ -5,6 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "CompactArray.h"
+#include "UnitPanel.h"
 
 #include <vector>
 
@@ -15,7 +16,7 @@ struct TransformComponent;
 
 class UnitSelection {
 public:
-	UnitSelection(int player, CompactArray<TransformComponent>* transform_components);
+	UnitSelection(int player, CompactArray<TransformComponent>* transform_components, const Program* program, UnitPanel* unit_panel);
 
 	void start(glm::vec2 view, glm::vec3 world);
 
@@ -23,7 +24,7 @@ public:
 
 	void finalize();
 
-	void draw(Program* program);
+	void draw();
 
 	const std::vector<Entity*>& get() const;
 
@@ -39,6 +40,10 @@ private:
 	CompactArray<TransformComponent>*  _transform_components;
 
 	int _player;
+
+	const Program* _program;
+
+	UnitPanel* _unit_panel;
 };
 
 #endif

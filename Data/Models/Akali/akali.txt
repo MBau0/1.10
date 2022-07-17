@@ -1,0 +1,5 @@
+# Akali
+
+dir.s Data/Models/Akali/
+model.s Akali.dae
+program.i 2

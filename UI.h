@@ -4,10 +4,11 @@
 #include "UnitPanel.h"
 
 struct GLFWwindow;
+class ImageManager;
 
 class UI {
 public:
-	UI(GLFWwindow* window, const std::vector<GLuint>& abilities);
+	UI(GLFWwindow* window, ImageManager* image_manager);
 
 	~UI();
 
@@ -21,12 +22,14 @@ public:
 
 	void draw() const;
 
-	UnitPanel& get_unit_panel();
+	UnitPanel* get_unit_panel();
 
 private:
 	GLFWwindow* _window;
 
 	UnitPanel _unit_panel;
+
+	ImageManager* _image_manager;
 };
 
 #endif

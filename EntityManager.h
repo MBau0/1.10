@@ -3,6 +3,7 @@
 
 #include "ComponentManager.h"
 #include "CompactArray.h"
+#include "ActionManager.h"
 
 #include "FileReader.h"
 
@@ -13,6 +14,7 @@
 #include <memory>
 
 class Client;
+class SceneManager;
 
 struct EntityMessage;
 struct TransformMessage;
@@ -24,7 +26,7 @@ struct Cached {
 
 class EntityManager {
 public:
-	EntityManager(Client* client);
+	EntityManager(Client* client, SceneManager* scene_manager);
 
 	~EntityManager();
 
@@ -41,10 +43,16 @@ public:
 	void transform_message(std::shared_ptr<TransformMessage> message);
 
 	ComponentManager* get_component_manager();
+	 
+	void draw();
 private:
 	std::string get_entity_file(int id) const;
 
 	void load_transform(FileReader& file, Entity* entity);
+
+	void load_action(FileReader& file, Entity* entity);
+
+	std::vector<Action*> load_actions(int a[12], Entity* entity);
 private:
 	CompactArray<Entity> _entities;
 	CompactArray<Entity> _entities_cached;
@@ -56,6 +64,10 @@ private:
 	ComponentManager _components_cache;
 
 	Client* _client;
+
+	SceneManager* _scene_manager;
+
+	ActionManager _action_manager;
 };
 
 #endif

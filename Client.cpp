@@ -16,6 +16,8 @@
 
 #include "PeriodicTimer.h"
 
+#include "Benchmark.h"
+
 #include <mutex>
 
 #define DEFAULT_HOSTNAME "192.168.1.4"
@@ -188,6 +190,9 @@ void Client::tick_update() {
             }
 
             _message_pool.clear_previous();
+        }
+        else {
+            Sleep(_tick_timer.remaining());
         }
     }
 }

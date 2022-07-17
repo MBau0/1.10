@@ -4,7 +4,8 @@ Entity::Entity() :
 	_id			  ( -1 ),
 	_index		  ( -1 ),
 	_player		  (  0 ),
-	_server_index ( -1 )
+	_server_index ( -1 ),
+	_scene		  ( -1 )
 {}
 
 Entity::~Entity() {
@@ -41,4 +42,12 @@ int Entity::get_server_index() const {
 
 void Entity::set_server_index(int server_index) {
 	_server_index = server_index;
+}
+
+int Entity::get_scene() const {
+	return _scene;
+}
+
+void Entity::set_scene(int scene) {
+	_scene = scene;
 }

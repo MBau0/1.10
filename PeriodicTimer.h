@@ -1,7 +1,7 @@
 #ifndef PERIODICTIMER_H
 #define PERIODICTIMER_H
 
-#include <Windows.h>
+typedef unsigned long DWORD;
 
 class PeriodicTimer {
 public:
@@ -11,10 +11,11 @@ public:
 
     void offset(DWORD offset);
 
-    bool alert();
+    const DWORD remaining() const;
+
+    const bool alert();
 private:
     DWORD _period_ms;
-    DWORD _time_ms;
     DWORD _start_time_ms;
 };
 

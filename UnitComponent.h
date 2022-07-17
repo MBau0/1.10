@@ -13,6 +13,7 @@ struct UnitComponent : public Component {
 	void update();
 
 	static constexpr uint8_t _component_type = UNIT_COMPONENT;
+
 };
 
 #endif

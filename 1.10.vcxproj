@@ -85,6 +85,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>D:\Programming\VS\1.10\external;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Programming\VS\1.10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -148,15 +150,15 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\Programming\VS\1.10\external</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Programming\VS\1.10\external;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\Programming\VS\1.10\lib\assimp;D:\Programming\VS\1.10\lib\GLFW;D:\Programming\VS\1.10\lib\SOIL</AdditionalLibraryDirectories>
-      <AdditionalDependencies>soil2-debug.lib;assimp-vc141-mtd.lib;opengl32.lib;glfw3.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\Programming\VS\1.10\lib\assimp;D:\Programming\VS\1.10\lib\GLFW;D:\Programming\VS\1.10\lib\SOIL;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>soil2-debug.lib;assimp-vc141-mtd.lib;opengl32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -167,11 +169,18 @@
     <ClCompile Include="..\external\imgui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="..\external\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\external\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="Action.cpp" />
+    <ClCompile Include="ActionComponent.cpp" />
+    <ClCompile Include="ActionManager.cpp" />
+    <ClCompile Include="BuildAction.cpp" />
     <ClCompile Include="Collision.cpp" />
+    <ClCompile Include="EmptyAction.cpp" />
     <ClCompile Include="EntityManager.cpp" />
     <ClCompile Include="EntityMessage.cpp" />
     <ClCompile Include="Message.cpp" />
     <ClCompile Include="MessageHandler.cpp" />
+    <ClCompile Include="ProgramManager.cpp" />
+    <ClCompile Include="SceneManager.cpp" />
     <ClCompile Include="ServerEntity.cpp" />
     <ClCompile Include="UnitComponent.cpp" />
     <ClCompile Include="BuildingComponent.cpp" />
@@ -201,11 +210,19 @@
     <ClCompile Include="UnitSelection.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Action.h" />
+    <ClInclude Include="ActionComponent.h" />
+    <ClInclude Include="ActionManager.h" />
+    <ClInclude Include="Benchmark.h" />
+    <ClInclude Include="BuildAction.h" />
     <ClInclude Include="Collision.h" />
     <ClInclude Include="CompactArray.h" />
+    <ClInclude Include="EmptyAction.h" />
     <ClInclude Include="EntityManager.h" />
     <ClInclude Include="EntityMessage.h" />
     <ClInclude Include="MessageHandler.h" />
+    <ClInclude Include="ProgramManager.h" />
+    <ClInclude Include="SceneManager.h" />
     <ClInclude Include="ServerEntity.h" />
     <ClInclude Include="UnitComponent.h" />
     <ClInclude Include="BuildingComponent.h" />
